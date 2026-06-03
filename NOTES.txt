@@ -1,0 +1,20 @@
+Saas Project
+
+1. Look for free emailing service
+2. Push to live 
+	- Test authentication
+	- Add a reset link page 
+3.Once get email service send email
+	- Welcome message
+	- Reset link 
+	- Invited User
+4.Create Event 
+5. Fix notification and Profile icon
+
+
+
+TODO
+- Update google auth 
+( GCP -> API & SERVICES -> OAUTH CONSENT -> BRANDING)
+
+

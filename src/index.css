@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+:root {
+  --primary: #7877C6;
+  --primary-light: rgba(120, 119, 198, 0.08);
+  --primary-hover: rgba(120, 119, 198, 0.9);
+  --primary-gradient-start: rgba(120, 119, 198, 0.3);
+}
+
+body{
+    width: 100vw;
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    margin: 0;
+    font-family: 'Satoshi', sans-serif;
+}
