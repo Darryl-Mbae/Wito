@@ -3,13 +3,19 @@ import { Plus, Trash2, ArrowRight, CheckCircle2, Astroid } from "lucide-react";
 import { getAuth } from "firebase/auth";
 import { getFirestore, doc, setDoc, updateDoc, arrayUnion, collection } from "firebase/firestore";
 import app from "../config/firebase";
+import { useOutletContext } from "react-router-dom";
+import { EMAIL_TEMPLATES } from "../lib/emails/templates";
+import { useMailtrap } from "../hooks/useMailtrap";
 
-export default function CreateClub({ onCreated }: { onCreated?: () => void }) {
+
+export default function CreateClub() {
   const [clubName, setClubName] = useState("");
   const [directorEmail, setDirectorEmail] = useState("");
   const [directors, setDirectors] = useState<{ email: string; accepted: boolean }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { onOrgCreated } = useOutletContext<{ onOrgCreated: () => void }>();
+  const { sendEmail } = useMailtrap();
 
   const handleAddDirector = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,28 +47,46 @@ export default function CreateClub({ onCreated }: { onCreated?: () => void }) {
 
       if (!user) throw new Error("Not authenticated");
 
-      // 1. Create a new Organization document
+      // Each director gets their own unique token — no shared org-level token
+      const directorsWithTokens = directors.map((dir) => ({
+        ...dir,
+        token: crypto.randomUUID(),
+      }));
+
+      // 1. Create org — no invitationToken field on the org itself
       const newOrgRef = doc(collection(db, "organizations"));
       await setDoc(newOrgRef, {
         name: clubName,
-        invitedDirectors: directors,
+        invitedDirectors: directorsWithTokens,
         createdBy: user.uid,
         createdAt: new Date(),
       });
 
-      // 2. Update the user document to include this organization
+      // 2. Update user doc
       const userRef = doc(db, "users", user.uid);
       await updateDoc(userRef, {
-        organization: arrayUnion({
-          id: newOrgRef.id,
-          role: "director"
-        })
+        organization: arrayUnion({ id: newOrgRef.id, role: "director" })
       });
 
-      // Switch view to dashboard
-      if (onCreated) {
-        onCreated();
+      // 3. Send each director their own unique link
+      if (directorsWithTokens.length > 0) {
+        const emailPromises = directorsWithTokens.map((dir) =>
+          sendEmail(
+            dir.email,
+            EMAIL_TEMPLATES.userInvitation.uuid,
+            {
+              company_name: clubName,
+              logo_url: import.meta.env.VITE_LOGO_URL,
+              email: dir.email,
+              base_url: window.location.origin,
+              token: dir.token,           // ← unique per person
+            }
+          )
+        );
+        await Promise.all(emailPromises);
       }
+
+      onOrgCreated();
 
     } catch (err: any) {
       console.error("Error creating club:", err);

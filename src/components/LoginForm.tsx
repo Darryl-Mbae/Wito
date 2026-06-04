@@ -6,16 +6,17 @@ import { useNavigate } from "react-router-dom";
 import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
 import app from "../config/firebase";
 
-const LoginForm = ({ step, setStep, isGooglePending }: {
+const LoginForm = ({ step, setStep, isGooglePending, onAuthSuccess }: {
     step: number;
     setStep: (s: number) => void;
     isGooglePending: boolean;
+    onAuthSuccess: (user: any) => void;
 }) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
-    const navigate = useNavigate();
 
+    const navigate = useNavigate();
     const { login, error: loginError, isPending, setError: setLoginError } = useLogin();
     const [localValidationError, setLocalValidationError] = useState("");
 
@@ -79,7 +80,7 @@ const LoginForm = ({ step, setStep, isGooglePending }: {
 
         const user = await login(email, password);
         if (user) {
-            navigate("/dashboard");
+            onAuthSuccess(user);
         }
     };
 

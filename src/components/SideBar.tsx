@@ -50,7 +50,7 @@ const SideBar: React.FC<SidebarProps> = ({
       items: [
         { name: "Dashboard", icon: House },
         { name: "Calendar", icon: Calendar },
-        { name: "Create Events", icon: PlusCircle },
+        { name: "Events", icon: PlusCircle },
         { name: "Directors", icon: Users },
       ],
     },
@@ -67,7 +67,7 @@ const SideBar: React.FC<SidebarProps> = ({
   const routeMap: Record<string, string> = {
     Dashboard: "/dashboard",
     Calendar: "/dashboard/calendar",
-    "Create Events": "/dashboard/events",
+    Events: "/dashboard/events",
     Directors: "/dashboard/directors",
     Settings: "/dashboard/settings",
     "Help & Support": "/dashboard/help",

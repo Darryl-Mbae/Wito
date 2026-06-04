@@ -3,22 +3,20 @@ import type { FormEvent } from "react";
 import { ImSpinner2 } from "react-icons/im";
 import { Eye, EyeOff } from "lucide-react";
 import { useSignup } from "../hooks/useAuth";
-import { useNavigate } from "react-router-dom";
 
 // ✅ ONLY ADD TYPES (no UI change)
 type Props = {
     step: number;
     setStep: (step: number) => void;
     isGooglePending: boolean;
+    onAuthSuccess: (user: any) => void;
 };
 
-const SignUpForm = ({ step, setStep, isGooglePending }: Props) => {
+const SignUpForm = ({ step, setStep, isGooglePending, onAuthSuccess }: Props) => {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
-
-    const navigate = useNavigate();
 
     const {
         signup,
@@ -81,10 +79,8 @@ const SignUpForm = ({ step, setStep, isGooglePending }: Props) => {
         }
 
         const user = await signup(email, password, name);
-
         if (user) {
-            navigate("/dashboard");
-            console.log("Account created successfully for:", email);
+            onAuthSuccess(user);
         }
     };
 

@@ -9,7 +9,7 @@ import {
   Plus,
   Check,
 } from "lucide-react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { getAuth, onAuthStateChanged, type User as AuthUser } from "firebase/auth";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import app from "../config/firebase";
 
@@ -18,9 +18,12 @@ export interface Organization {
   name: string;
   color: string;
   role?: string;
+  createdBy: string;
 }
 
 interface HeaderProps {
+  user: AuthUser | null;
+  refreshKey: number;
   setSidebarOpen: (v: boolean) => void;
   activeOrg: Organization | null;
   setActiveOrg: React.Dispatch<React.SetStateAction<Organization | null>>;
@@ -29,6 +32,8 @@ interface HeaderProps {
 export function Header({
   setSidebarOpen,
   activeOrg,
+  user,
+  refreshKey,
   setActiveOrg,
 }: HeaderProps) {
   const [open, setOpen] = useState(false);
@@ -58,25 +63,23 @@ export function Header({
         setOpen(false);
       }
     };
-
     const keyHandler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setOpen(false);
-      }
+      if (e.key === "Escape") setOpen(false);
     };
-
     document.addEventListener("mousedown", handler);
     document.addEventListener("keydown", keyHandler);
-
     return () => {
       document.removeEventListener("mousedown", handler);
       document.removeEventListener("keydown", keyHandler);
     };
   }, []);
 
+  // Fetch orgs — re-runs on auth change or manual refresh
   useEffect(() => {
     const auth = getAuth(app);
     const db = getFirestore(app);
+
+    setLoading(true);
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -109,13 +112,9 @@ export function Header({
 
         for (let i = 0; i < userOrgs.length; i++) {
           const orgRef = userOrgs[i];
-
           if (!orgRef.id) continue;
 
-          const orgDoc = await getDoc(
-            doc(db, "organizations", orgRef.id)
-          );
-
+          const orgDoc = await getDoc(doc(db, "organizations", orgRef.id));
           if (!orgDoc.exists()) continue;
 
           fetchedOrgs.push({
@@ -123,20 +122,23 @@ export function Header({
             name: orgDoc.data().name || "Unnamed Club",
             color: colors[i % colors.length],
             role: orgRef.role,
+            createdBy: orgDoc.data().createdBy || "",
           });
         }
 
         setOrgs(fetchedOrgs);
 
-        if (fetchedOrgs.length > 0) {
-          setActiveOrg((current) => current || fetchedOrgs[0]);
-        } else {
-          setActiveOrg(null);
+        setActiveOrg((current) => {
+          if (!current) return fetchedOrgs[0] ?? null;
 
-          if (location.pathname !== "/dashboard/create-club") {
-            navigate("/dashboard/create-club");
-          }
-        }
+          const stillExists = fetchedOrgs.find((o) => o.id === current.id);
+          if (!stillExists) return fetchedOrgs[0] ?? null;
+
+          const lastOrg = fetchedOrgs[fetchedOrgs.length - 1];
+          if (refreshKey > 0 && lastOrg.id !== current.id) return lastOrg;
+
+          return current;
+        });
       } catch (error) {
         console.error("Error fetching organizations:", error);
       }
@@ -145,7 +147,16 @@ export function Header({
     });
 
     return () => unsubscribe();
-  }, [navigate, location.pathname, setActiveOrg]);
+  }, [setActiveOrg, refreshKey]);
+
+  // Redirect to create-club when genuinely no orgs
+  useEffect(() => {
+    if (loading) return;
+    if (refreshKey > 0) return;
+    if (orgs.length === 0 && location.pathname !== "/dashboard/create-club") {
+      navigate("/dashboard/create-club");
+    }
+  }, [loading, orgs, refreshKey, location.pathname, navigate]);
 
   return (
     <header className="flex h-20 w-full items-center justify-between border-b border-gray-100 bg-white px-4 md:px-8 shrink-0">
@@ -174,9 +185,7 @@ export function Header({
             </div>
 
             <span className="text-[13.5px] font-medium text-gray-800">
-              {loading
-                ? "Loading..."
-                : activeOrg?.name || "No Organization"}
+              {loading ? "Loading..." : activeOrg?.name || "No Organization"}
             </span>
 
             <ChevronDown
@@ -190,7 +199,6 @@ export function Header({
             <div className="absolute left-0 top-[calc(100%+6px)] w-[260px] rounded-xl border border-gray-100 bg-white shadow-xl shadow-gray-200/50 z-50 overflow-hidden">
               <div className="flex items-center gap-2 border-b border-gray-100 px-3.5 py-2.5">
                 <Search size={14} className="text-gray-400" />
-
                 <input
                   ref={inputRef}
                   value={query}
@@ -208,7 +216,7 @@ export function Header({
                       setActiveOrg(org);
                       setOpen(false);
                     }}
-                    className="flex w-full items-center justify-between px-3.5 py-2 hover:bg-gray-50 transition"
+                    className="flex w-full items-center justify-between px-3.5 py-2 hover:bg-gray-50 transition cursor-pointer"
                   >
                     <div className="flex items-center gap-2.5">
                       <div
@@ -216,17 +224,12 @@ export function Header({
                       >
                         {org.name[0]?.toUpperCase()}
                       </div>
-
                       <span className="text-[13px] text-gray-700 truncate">
                         {org.name}
                       </span>
                     </div>
-
                     {activeOrg?.id === org.id && (
-                      <Check
-                        size={14}
-                        className="text-[#7877C6]"
-                      />
+                      <Check size={14} className="text-[#7877C6]" />
                     )}
                   </button>
                 ))}
@@ -246,7 +249,7 @@ export function Header({
                     setOpen(false);
                     navigate("/dashboard/create-club");
                   }}
-                  className="flex w-full items-center gap-2.5 px-3.5 py-2 hover:bg-gray-50 transition"
+                  className="flex w-full items-center gap-2.5 px-3.5 py-2 hover:bg-gray-50 transition cursor-pointer"
                 >
                   <Plus size={15} className="text-gray-400" />
                   <span className="text-[13px] text-gray-600">
@@ -261,21 +264,32 @@ export function Header({
 
       <div className="flex items-center gap-2">
         <div className="relative">
-          <button className="rounded-xl p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition">
+          <button className="rounded-xl p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition cursor-pointer">
             <Bell size={20} />
           </button>
-
           <span className="absolute top-2 right-2.5 h-1.5 w-1.5 rounded-full bg-[#7877C6]" />
         </div>
 
         <div className="h-6 w-px bg-gray-100" />
 
-        <button className="flex items-center gap-2 rounded-xl p-1 hover:bg-gray-50 transition">
-          <img
-            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
-            alt="Avatar"
-            className="h-8 w-8 rounded-full object-cover"
-          />
+        <button className="flex items-center gap-2 rounded-xl p-1 hover:bg-gray-50 transition cursor-pointer">
+          {user?.photoURL ? (
+            <img
+              src={user.photoURL}
+              alt="Avatar"
+              className="h-8 w-8 rounded-full object-cover"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-[#7877C6]">
+              <span className="text-white font-semibold text-sm">
+                {user?.displayName
+                  ?.split(" ")
+                  .map((n: string) => n[0])
+                  .join("")
+                  .toUpperCase()}
+              </span>
+            </div>
+          )}
         </button>
       </div>
     </header>

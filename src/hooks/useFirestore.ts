@@ -17,6 +17,71 @@ type ProfileData = {
   photoURL?: string | null;
 };
 
+// ─── Resolve a pending invite token for a user ───────────────────────────────
+// Each invite entry has its own token. On accept: token is cleared (null),
+// accepted flips to true, and the org is added to the user's profile.
+export const resolveInviteToken = async (uid: string, token: string): Promise<boolean> => {
+  const db = getFirestore(app);
+
+  try {
+    // Scan orgs to find the one with an invite entry containing this token.
+    // Token is per-person so only one entry across all orgs will match.
+    const orgsSnap = await getDocs(collection(db, "organizations"));
+
+    let matchedOrgId: string | null = null;
+    let matchedOrgData: any = null;
+    let matchedInvite: any = null;
+
+    for (const orgDoc of orgsSnap.docs) {
+      const data = orgDoc.data();
+      const invited: any[] = data.invitedDirectors || [];
+      const invite = invited.find(
+        (inv) => inv.token === token && !inv.accepted
+      );
+      if (invite) {
+        matchedOrgId = orgDoc.id;
+        matchedOrgData = data;
+        matchedInvite = invite;
+        break;
+      }
+    }
+
+    if (!matchedOrgId || !matchedInvite) return false;
+
+    // Get the user doc to verify they own the email the invite was sent to
+    const userDoc = await getDoc(doc(db, "users", uid));
+    if (!userDoc.exists()) return false;
+    const userEmail = userDoc.data().email as string;
+
+    if (matchedInvite.email !== userEmail) return false;
+
+    // Mark accepted and nullify the token (single-use)
+    const updatedInvites = (matchedOrgData.invitedDirectors as any[]).map((inv) =>
+      inv.token === token
+        ? { ...inv, accepted: true, token: null, acceptedAt: new Date() }
+        : inv
+    );
+
+    await updateDoc(doc(db, "organizations", matchedOrgId), {
+      invitedDirectors: updatedInvites,
+    });
+
+    // Add org to user's profile (guard against duplicates)
+    const existingOrgs: any[] = userDoc.data().organization || [];
+    const alreadyMember = existingOrgs.some((o) => o.id === matchedOrgId);
+    if (!alreadyMember) {
+      await updateDoc(doc(db, "users", uid), {
+        organization: [...existingOrgs, { id: matchedOrgId, role: "director" }],
+      });
+    }
+
+    return true;
+  } catch (err) {
+    console.error("resolveInviteToken error:", err);
+    return false;
+  }
+};
+
 export const useCreatUser = () => {
   const [dbError, setDbError] = useState<string | null>(null);
   const [isDbPending, setIsDbPending] = useState(false);
@@ -52,20 +117,13 @@ export const useCreatUser = () => {
 
         console.log("Firestore profile created.");
 
-        // ----------------------------
-        // AUTO-RESOLVE INVITES (FIXED)
-        // ----------------------------
-
+        // Auto-resolve any existing invites for this email
         try {
-          const orgsSnap = await getDocs(
-            collection(db, "organizations")
-          );
-
+          const orgsSnap = await getDocs(collection(db, "organizations"));
           const autoOrgs: any[] = [];
 
           for (const orgDoc of orgsSnap.docs) {
             const orgData = orgDoc.data();
-
             const invited = orgData.invitedDirectors || [];
 
             const hasInvite = invited.some(
@@ -75,10 +133,7 @@ export const useCreatUser = () => {
 
             if (!hasInvite) continue;
 
-            autoOrgs.push({
-              id: orgDoc.id,
-              role: "director",
-            });
+            autoOrgs.push({ id: orgDoc.id, role: "director" });
 
             const updatedInvites = invited.map((inv: any) =>
               inv.email === profileData.email
@@ -92,13 +147,8 @@ export const useCreatUser = () => {
           }
 
           if (autoOrgs.length > 0) {
-            await updateDoc(userRef, {
-              organization: autoOrgs,
-            });
-
-            console.log(
-              `Auto-resolved ${autoOrgs.length} invites.`
-            );
+            await updateDoc(userRef, { organization: autoOrgs });
+            console.log(`Auto-resolved ${autoOrgs.length} invites.`);
           }
         } catch (inviteErr) {
           console.error("Invite auto-resolve error:", inviteErr);

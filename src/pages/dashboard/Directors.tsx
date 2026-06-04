@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useOutletContext } from "react-router-dom"; // Added for routing integration
+import { useOutletContext } from "react-router-dom";
 import { Users, Plus, Trash2 } from "lucide-react";
 import {
   getFirestore,
@@ -14,16 +14,12 @@ import {
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import app from "../../config/firebase";
-import { type DashboardContextType } from "../Dashboard"; // Import context type from parent layout
+import { type DashboardContextType } from "../Dashboard";
 
 const Directors: React.FC = () => {
-  // 1. Grab the dynamic direct link ID if it exists in the URL (e.g., /dashboard/directors/123)
-  const { id: routeDirectorId } = useParams<{ id: string }>();
-  const [loading, setLoading] = useState(true);
-
-  // 2. Safely extract variables/state passing down from the Dashboard dynamic context pipeline
   const { activeOrg } = useOutletContext<DashboardContextType>();
 
+  const [loading, setLoading] = useState(true);
   const [directors, setDirectors] = useState<any[]>([]);
   const [newEmail, setNewEmail] = useState("");
   const [orgData, setOrgData] = useState<any>(null);
@@ -32,6 +28,7 @@ const Directors: React.FC = () => {
   useEffect(() => {
     if (!activeOrg) {
       setDirectors([]);
+      setLoading(false);
       return;
     }
 
@@ -47,7 +44,6 @@ const Directors: React.FC = () => {
       const data = snap.data();
       setOrgData(data);
 
-      // Determine if current user is just an invited member (not owner)
       const currentEmail = currentUser?.email || "";
       const isOwner = data.createdBy === currentUser?.uid;
       const invitedEntry = (data.invitedDirectors || []).find(
@@ -76,15 +72,12 @@ const Directors: React.FC = () => {
       ];
 
       if (data.invitedDirectors && Array.isArray(data.invitedDirectors)) {
-        // Collect all invited emails to batch-lookup from users collection
         const invitedEmails: string[] = data.invitedDirectors.map(
           (invite: any) => invite.email
         );
 
-        // Look up user documents by email
         const emailToName: Record<string, string> = {};
         if (invitedEmails.length > 0) {
-          // Firestore 'in' query supports up to 30 items; chunk if needed
           const chunkSize = 30;
           for (let i = 0; i < invitedEmails.length; i += chunkSize) {
             const chunk = invitedEmails.slice(i, i + chunkSize);
@@ -138,11 +131,10 @@ const Directors: React.FC = () => {
       return;
     }
 
-    const newInvite = { email: newEmail, accepted: false };
-    const updatedInvites = [...(orgData?.invitedDirectors || []), newInvite];
-
     try {
-      await updateDoc(orgRef, { invitedDirectors: updatedInvites });
+      await updateDoc(orgRef, {
+        invitedDirectors: [...(orgData?.invitedDirectors || []), { email: newEmail, accepted: false }],
+      });
       setNewEmail("");
     } catch (err) {
       console.error("Error adding director", err);
@@ -154,11 +146,12 @@ const Directors: React.FC = () => {
     const db = getFirestore(app);
     const orgRef = doc(db, "organizations", activeOrg.id);
 
-    const updatedInvites = (orgData?.invitedDirectors || []).filter(
-      (d: any) => d.email !== emailToRemove
-    );
     try {
-      await updateDoc(orgRef, { invitedDirectors: updatedInvites });
+      await updateDoc(orgRef, {
+        invitedDirectors: (orgData?.invitedDirectors || []).filter(
+          (d: any) => d.email !== emailToRemove
+        ),
+      });
     } catch (err) {
       console.error("Error removing director", err);
     }
@@ -174,25 +167,6 @@ const Directors: React.FC = () => {
     );
   }
 
-  // Optional View: Render targeted profile info if an exact ID parameter exists in the URL
-  if (routeDirectorId) {
-    return (
-      <div className="space-y-6">
-        <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-xs">
-          <h2 className="text-xl font-semibold text-gray-900">Director Single View</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Inspecting Profile Record: <span className="font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{routeDirectorId}</span>
-          </p>
-          <div className="mt-6 pt-6 border-t border-gray-100">
-            {/* Find matching snapshot data locally or fetch specific document */}
-            <p className="text-gray-700">Scoped under Organization context: <strong>{activeOrg.name}</strong></p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // LOADING STATE
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -204,25 +178,22 @@ const Directors: React.FC = () => {
     );
   }
 
-  // Standard Directory Layout View (Fallback when no individual route ID is active)
   return (
     <div className="space-y-6">
-      {/* Add Director Form — hidden for invited members */}
+      {/* Invite form — hidden for invited members */}
       {!isInvitedMember && (
-        <div className="w-full lg:w-[50%] rounded-2xl border-none border-gray-100 bg-white py-5">
+        <div className="w-full lg:w-[50%] rounded-2xl bg-white py-5">
           <h3 className="text-sm font-semibold text-gray-900 mb-4">
             Invite New Director
           </h3>
           <form onSubmit={handleAddDirector} className="flex gap-3">
-            <div className="relative flex-1">
-              <input
-                type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="director@example.com"
-                className="block w-full rounded-xl border-0 py-2.5 pl-3 pr-3 text-gray-900 ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#7877C6] sm:text-sm sm:leading-6"
-              />
-            </div>
+            <input
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="director@example.com"
+              className="flex-1 rounded-xl border-0 py-2.5 pl-3 pr-3 text-gray-900 ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#7877C6] sm:text-sm sm:leading-6"
+            />
             <button
               type="submit"
               className="flex items-center gap-2 rounded-xl bg-[#7877C6] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#7877C6]/90 transition cursor-pointer"
@@ -244,15 +215,12 @@ const Directors: React.FC = () => {
                 <th className="px-6 py-4 font-medium">Name</th>
                 <th className="px-6 py-4 font-medium">Email</th>
                 <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 text-right font-medium"></th>
+                <th className="px-6 py-4 font-medium text-right"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {directors.map((director) => (
-                <tr
-                  key={director.id}
-                  className="hover:bg-gray-50/50 transition"
-                >
+                <tr key={director.id} className="hover:bg-gray-50/50 transition">
                   <td className="px-6 py-4">
                     <div className="h-8 w-8 rounded-full bg-[#7877C6]/10 flex items-center justify-center shrink-0">
                       <span className="text-[#7877C6] font-medium text-xs">
@@ -268,19 +236,11 @@ const Directors: React.FC = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <div
-                        className={`h-1.5 w-1.5 rounded-full ${director.status === "Active"
-                          ? "bg-emerald-500"
-                          : "bg-amber-500"
-                          }`}
-                      />
-                      <span className="text-sm text-gray-700 font-medium">
-                        {director.status}
-                      </span>
+                      <div className={`h-1.5 w-1.5 rounded-full ${director.status === "Active" ? "bg-emerald-500" : "bg-amber-500"}`} />
+                      <span className="text-sm text-gray-700 font-medium">{director.status}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    {/* Only owner can remove; invited members see no remove button */}
                     {!director.isOwner && !isInvitedMember && (
                       <button
                         onClick={() => handleRemoveDirector(director.email)}
@@ -295,10 +255,7 @@ const Directors: React.FC = () => {
               ))}
               {directors.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={5}
-                    className="px-6 py-12 text-center text-gray-500"
-                  >
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                     <Users className="mx-auto h-8 w-8 text-gray-300 mb-2" />
                     No directors found.
                   </td>

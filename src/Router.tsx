@@ -14,6 +14,12 @@ import Settings from "./pages/dashboard/Settings";
 import HelpSupport from "./pages/dashboard/HelpSupport";
 import CreateClub from "./pages/CreateClub";
 import Calendar from "./pages/dashboard/Calendar";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Unsubscribe from "./pages/Unsubscribe";
+import AcceptInvitation from "./pages/AcceptInvitation";
+import TermsOfService from "./pages/TermsOfService";
+import EventPublic from "./pages/EventPublic";
+import EventDetail from "./pages/dashboard/EventDetail";
 
 export default function AppRouter() {
   return (
@@ -21,7 +27,12 @@ export default function AppRouter() {
       {/* Public */}
       <Route path="/" element={<Website />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/unsubscribe" element={<Unsubscribe />} />
+      <Route path="/accept-invite" element={<AcceptInvitation />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms-of-service" element={<TermsOfService />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/event/:id" element={<EventPublic />} />
 
       {/* Dashboard Layout */}
       <Route
@@ -33,6 +44,7 @@ export default function AppRouter() {
         }
       >
         <Route index element={<DashboardHome />} />
+        <Route path="events/:eventId" element={<EventDetail />} />
         <Route path="calendar" element={<Calendar />} />
         <Route path="events" element={<Events />} />
         <Route path="directors" element={<Directors />} />

@@ -1,15 +1,15 @@
 Saas Project
 
-1. Look for free emailing service
-2. Push to live 
-	- Test authentication
-	- Add a reset link page 
-3.Once get email service send email
+1. Add Calendar 
+2. Add a reset link page 
+3. Once get email service send email
 	- Welcome message
 	- Reset link 
-	- Invited User
-4.Create Event 
-5. Fix notification and Profile icon
+	- Registered for the event 
+	- Thank you for attending
+
+4. Reedit Event details
+5. Fix notification 
 
 
 
@@ -18,3 +18,6 @@ TODO
 ( GCP -> API & SERVICES -> OAUTH CONSENT -> BRANDING)
 
 
+ERRORS
+- On phone while using google auth it does not redirect 
+- I noticed in event details when i change org it still shows 

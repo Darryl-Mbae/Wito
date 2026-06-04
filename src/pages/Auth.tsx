@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
 import { ImSpinner2 } from "react-icons/im";
@@ -7,11 +7,29 @@ import LoginForm from "../components/LoginForm";
 import SignUpForm from "../components/SignUpForm";
 import { useGoogleAuth } from "../hooks/useAuth";
 import appConfig from "../config/app";
+import { resolveInviteToken } from "../hooks/useFirestore";
+import type { User } from "firebase/auth";
+
+const PENDING_INVITE_KEY = "pendingInviteToken";
+
+// After any successful auth, resolve a pending invite token if present
+const handlePostAuth = async (user: User, navigate: (path: string) => void) => {
+    const pendingToken = sessionStorage.getItem(PENDING_INVITE_KEY);
+    if (pendingToken) {
+        sessionStorage.removeItem(PENDING_INVITE_KEY);
+        await resolveInviteToken(user.uid, pendingToken);
+    }
+    navigate("/dashboard");
+};
 
 const Auth = () => {
     const [step, setStep] = useState(1);
     const [isSignUp, setIsSignUp] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Invite context passed from AcceptInvitation when user wasn't logged in
+    const inviteOrgName = location.state?.orgName as string | undefined;
 
     const { 
         loginWithGoogle, 
@@ -27,10 +45,9 @@ const Auth = () => {
 
     useEffect(() => {
         const parseGooglePayload = async () => {
-            // Handle mobile redirect result
             const user = await handleRedirectResult();
             if (user) {
-                navigate("/dashboard");
+                await handlePostAuth(user, navigate);
             }
         };
         parseGooglePayload();
@@ -38,9 +55,8 @@ const Auth = () => {
 
     const handleGoogleLogin = async () => {
         const user = await loginWithGoogle();
-        // Desktop popup returns user directly
         if (user) {
-            navigate("/dashboard");
+            await handlePostAuth(user, navigate);
         }
     };
 
@@ -78,6 +94,13 @@ const Auth = () => {
                         </p>
                     </div>
 
+                    {/* Invite context banner */}
+                    {inviteOrgName && (
+                        <div className="w-full mb-4 p-3 text-xs font-medium text-[#7877C6] bg-[#7877C6]/5 border border-[#7877C6]/15 rounded-[8px]">
+                            You've been invited to join <span className="font-semibold">{inviteOrgName}</span> as a director. {isSignUp ? "Create an account" : "Sign in"} to accept.
+                        </div>
+                    )}
+
                     {/* Shared Google Runtime Error Notification */}
                     {googleError && (
                         <div className="w-full mb-4 p-3 text-xs font-medium text-red-600 bg-red-50 border border-red-100 rounded-[8px]">
@@ -91,12 +114,14 @@ const Auth = () => {
                             step={step} 
                             setStep={setStep} 
                             isGooglePending={isGooglePending}
+                            onAuthSuccess={(user) => handlePostAuth(user, navigate)}
                         />
                     ) : (
                         <LoginForm 
                             step={step} 
                             setStep={setStep} 
                             isGooglePending={isGooglePending}
+                            onAuthSuccess={(user) => handlePostAuth(user, navigate)}
                         />
                     )}
 
