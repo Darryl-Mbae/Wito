@@ -50,7 +50,7 @@ const Dashboard: React.FC = () => {
           setActiveOrg={setActiveOrg}
         />
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-white pt-25 lg:pt-25">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-white pt-25 lg:pt-25 pb-10">
           <Outlet context={{ onOrgCreated: handleOrgCreated, activeOrg } satisfies DashboardContextType} />
         </main>
 

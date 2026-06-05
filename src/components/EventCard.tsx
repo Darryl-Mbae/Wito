@@ -243,7 +243,7 @@ const EventCard: React.FC<Props> = ({
   // ── Grid card ───────────────────────────────────────────────────────────
   return (
     <div
-      className={`w-[90%] mx-auto md:w-full transition-all ease-out duration-300 hover:mt-2 relative rounded-2xl border border-gray-100 bg-white overflow-hidden flex flex-col hover:border-gray-200 ${past ? "opacity-55" : ""
+      className={`w-[90%] mx-auto md:w-full transition-all ease-out duration-300 relative rounded-2xl border border-gray-100 bg-white overflow-hidden flex flex-col hover:border-gray-200 ${past ? "opacity-55" : ""
         }`}
     >
       {/* Image */}

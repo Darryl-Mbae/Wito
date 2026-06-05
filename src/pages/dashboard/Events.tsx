@@ -389,7 +389,7 @@ const Events: React.FC = () => {
             {filtered.map((event) => (
               <div
                 key={event.id}
-                className="relative"
+                className="relative  hover:mt-2 "
                 onClick={selectMode ? () => toggleSelect(event.id) : undefined}
               >
                 {/* Selection indicator for list */}
@@ -402,7 +402,7 @@ const Events: React.FC = () => {
                     )}
                   </div>
                 )}
-                <div className={selectMode ? "pl-8" : ""}>
+                <div className={selectMode ? "border-primary" : ""}>
                   <EventCard
                     event={event}
                     onCardClick={selectMode ? undefined : () => navigate(`/dashboard/events/${event.id}`)}
@@ -421,7 +421,7 @@ const Events: React.FC = () => {
 
       {/* ── Floating bulk delete bar ── */}
       {selectMode && selected.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-xl">
+        <div className="w-70 fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-xl">
           <span className="text-sm font-medium">
             {selected.size} event{selected.size > 1 ? "s" : ""} selected
           </span>
