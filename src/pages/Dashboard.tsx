@@ -30,8 +30,7 @@ const Dashboard: React.FC = () => {
   if (!user) return null;
 
   return (
-    <div className="flex h-screen w-screen bg-[#f8fafc] overflow-hidden antialiased text-gray-600">
-
+    <div className="flex h-dvh w-screen bg-[#f8fafc] overflow-hidden antialiased text-gray-600">
       <SideBar
         isOpen={sidebarOpen}
         setIsOpen={setSidebarOpen}

@@ -141,7 +141,7 @@ const MiniCalendar: React.FC<{
                 ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-y-1.5">
+            <div className="grid grid-cols-7 gap-y-2.5">
                 {cells.map((day, i) => {
                     if (!day) return <div key={i} />;
                     const ymd = toYMD(year, month, day);
@@ -152,7 +152,7 @@ const MiniCalendar: React.FC<{
                         <button
                             key={i}
                             onClick={() => onSelect(ymd)}
-                            className={`relative h-7 w-full flex items-center justify-center rounded-lg text-[11px] font-medium transition cursor-pointer
+                            className={`relative h-10 w-full flex items-center justify-center rounded-lg text-[11px] font-medium transition cursor-pointer 
                                 ${isSelected ? "bg-[#7877C6] text-white" : isToday ? "bg-[#7877C6]/10 text-[#7877C6]" : "hover:bg-gray-100 text-gray-600"}`}
                         >
                             {day}
@@ -500,52 +500,7 @@ const CalendarPage: React.FC = () => {
                             )}
                         </div>
 
-                        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                            <div className="px-4 py-3 border-b border-gray-100">
-                                <h3 className="text-sm font-semibold text-gray-800">
-                                    Upcoming Events
-                                </h3>
-                            </div>
 
-                            {events.length === 0 ? (
-                                <div className="p-6 text-center text-sm text-gray-400">
-                                    No upcoming events
-                                </div>
-                            ) : (
-                                <div className="divide-y divide-gray-50">
-                                    {[...events]
-                                        .sort((a, b) =>
-                                            `${a.date}${a.time}`.localeCompare(
-                                                `${b.date}${b.time}`
-                                            )
-                                        )
-                                        .slice(0, 8)
-                                        .map((e) => (
-                                            <button
-                                                key={e.id}
-                                                onClick={() => setSelectedEvent(e)}
-                                                className="w-full text-left p-4 hover:bg-gray-50 transition"
-                                            >
-                                                <div className="flex justify-between items-start gap-3">
-                                                    <div className="min-w-0">
-                                                        <p className="text-sm font-medium text-gray-800 truncate">
-                                                            {e.name}
-                                                        </p>
-
-                                                        <p className="text-xs text-gray-500 mt-1">
-                                                            {formatTime(e.time)}
-                                                        </p>
-                                                    </div>
-
-                                                    <span className="text-xs text-gray-400 shrink-0">
-                                                        {formatDateShort(e.date)}
-                                                    </span>
-                                                </div>
-                                            </button>
-                                        ))}
-                                </div>
-                            )}
-                        </div>
                     </div>
                 ) : (
                     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden flex-1 flex flex-col min-h-0">
