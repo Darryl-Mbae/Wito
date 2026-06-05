@@ -73,7 +73,6 @@ type RegistrationForm = {
     phone: string;
     type: AttendeeType;
     clubName: string;
-    payNow: boolean;
 };
 
 const EMPTY_FORM: RegistrationForm = {
@@ -82,7 +81,6 @@ const EMPTY_FORM: RegistrationForm = {
     phone: "",
     type: "club",
     clubName: "",
-    payNow: false,
 };
 
 // ── Detail row ────────────────────────────────────────────────────────────────
@@ -177,7 +175,6 @@ const EventPublic: React.FC = () => {
                     phone: form.phone.trim(),
                     type: form.type,
                     clubName: form.type === "club" ? form.clubName.trim() : null,
-                    paymentStatus: form.payNow ? "paid" : "pending",
                     attended: false,
                     registeredAt: new Date().toISOString(),
                 }),
@@ -251,7 +248,7 @@ const EventPublic: React.FC = () => {
                             </div>
                             <div>
                                 <h2 className="text-base font-semibold text-gray-900">
-                                    {form.payNow ? "Registered & paid!" : "You're registered!"}
+                                    You're registered!
                                 </h2>
                                 <p className="text-xs text-gray-400 mt-0.5">
                                     See you at{" "}
@@ -295,13 +292,7 @@ const EventPublic: React.FC = () => {
                             {hasFee && (
                                 <div className="flex items-center gap-2 text-xs text-gray-500">
                                     <Ticket size={11} className="text-gray-300 shrink-0" />
-                                    {event.fee} —{" "}
-                                    <span
-                                        className={`font-medium ${form.payNow ? "text-emerald-500" : "text-amber-500"
-                                            }`}
-                                    >
-                                        {form.payNow ? "Paid" : "Pay on the day"}
-                                    </span>
+                                    {event.fee}
                                 </div>
                             )}
                         </div>
@@ -336,10 +327,8 @@ const EventPublic: React.FC = () => {
                 {/* Two-column on desktop, single on mobile */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
-
-                    {/* ── Left: Event details with image attached ── */}
+                    {/* ── Left: Event details ── */}
                     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-
                         <div className="p-6 space-y-5">
                             <div>
                                 <h1 className="text-xl font-semibold text-gray-900">
@@ -530,39 +519,6 @@ const EventPublic: React.FC = () => {
                                 </div>
                             )}
 
-                            {/* Pay now toggle */}
-                            {hasFee && (
-                                <div
-                                    className={`rounded-xl border p-4 transition cursor-pointer ${form.payNow
-                                        ? "border-[#7877C6] bg-[#7877C6]/5"
-                                        : "border-gray-200 bg-gray-50"
-                                        }`}
-                                    onClick={() =>
-                                        setForm((f) => ({ ...f, payNow: !f.payNow }))
-                                    }
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-900">
-                                                Pay now
-                                            </p>
-                                            <p className="text-xs text-gray-400 mt-0.5">
-                                                {event.fee} · Confirm your spot immediately
-                                            </p>
-                                        </div>
-                                        <div
-                                            className={`relative w-10 h-5 rounded-full transition-colors ${form.payNow ? "bg-[#7877C6]" : "bg-gray-200"
-                                                }`}
-                                        >
-                                            <div
-                                                className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${form.payNow ? "translate-x-5" : "translate-x-0.5"
-                                                    }`}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
                             {/* Submit */}
                             <button
                                 type="submit"
@@ -572,17 +528,13 @@ const EventPublic: React.FC = () => {
                                 {submitting && (
                                     <Loader2 size={15} className="animate-spin" />
                                 )}
-                                {submitting
-                                    ? "Submitting..."
-                                    : form.payNow && hasFee
-                                        ? "Pay & Register"
-                                        : "Register — Pay later"}
+                                {submitting ? "Submitting..." : "Register"}
                             </button>
                         </form>
                     </div>
                 </div>
             </div>
-        </div >
+        </div>
     );
 };
 

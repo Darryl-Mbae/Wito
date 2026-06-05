@@ -11,7 +11,6 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 export type Event = {
   id: string;
@@ -134,7 +133,6 @@ const EventCard: React.FC<Props> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const navigate = useNavigate();
 
 
   const past = isPast(event.date);
@@ -152,13 +150,13 @@ const EventCard: React.FC<Props> = ({
   // ── List row ────────────────────────────────────────────────────────────
   if (viewMode === "list") {
     return (
-      <div
-        onClick={onCardClick}
-        className={` cursor-pointer hover:ml-2 transition-all ease-out duration-300 flex items-center gap-4 px-4 py-3 border-b border-gray-100 bg-white  hover:bg-gray-50/50 ${past ? "opacity-55" : ""
-          }`}
+      <div className={`hover:ml-2 transition-all ease-out duration-300 flex items-center gap-4 px-4 py-3 border-b border-gray-100 bg-white  hover:bg-gray-50/50 ${past ? "opacity-55" : ""
+        }`}
       >
         {/* Thumbnail */}
-        <div className="h-10 w-10 rounded-lg overflow-hidden shrink-0 bg-gray-100">
+        <div
+          onClick={onCardClick}
+          className="cursor-pointer h-10 w-10 rounded-lg overflow-hidden shrink-0 bg-gray-100">
           <img
             src={event.imageUrl || DEFAULT_IMAGE}
             alt={event.name}
@@ -170,7 +168,8 @@ const EventCard: React.FC<Props> = ({
         {/* Name + badges */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-gray-900 truncate">{event.name}</p>
+            <p onClick={onCardClick}
+              className="cursor-pointer text-sm font-medium text-gray-900 truncate">{event.name}</p>
             {isMine && (
               <span className="text-[10px] font-semibold bg-[#7877C6]/10 text-[#7877C6] px-1.5 py-0.5 rounded-full shrink-0">
                 Mine
@@ -244,12 +243,13 @@ const EventCard: React.FC<Props> = ({
   // ── Grid card ───────────────────────────────────────────────────────────
   return (
     <div
-      onClick={onCardClick}
-      className={`transition-all ease-out duration-300 hover:mt-2 cursor-pointer relative rounded-2xl border border-gray-100 bg-white overflow-hidden flex flex-col hover:border-gray-200 ${past ? "opacity-55" : ""
+      className={`w-[90%] mx-auto md:w-full transition-all ease-out duration-300 hover:mt-2 relative rounded-2xl border border-gray-100 bg-white overflow-hidden flex flex-col hover:border-gray-200 ${past ? "opacity-55" : ""
         }`}
     >
       {/* Image */}
-      <div className="h-36 w-full overflow-hidden shrink-0 bg-gray-100 relative">
+      <div
+        onClick={onCardClick}
+        className="cursor-pointer h-46 w-full overflow-hidden shrink-0 bg-gray-100 relative">
         <img
           src={event.imageUrl || DEFAULT_IMAGE}
           alt={event.name}
@@ -292,7 +292,9 @@ const EventCard: React.FC<Props> = ({
       <div className="p-4 flex flex-col flex-1 space-y-3">
         {/* Title + actions */}
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-1">
+          <h3
+            onClick={onCardClick}
+            className="cursor-pointer font-semibold text-gray-900 text-sm leading-snug line-clamp-1">
             {event.name}
           </h3>
           <div className="flex items-center gap-1 shrink-0">
@@ -342,7 +344,7 @@ const EventCard: React.FC<Props> = ({
       <button
         onClick={handleShare}
         title="Copy event link"
-        className="absolute bottom-4 right-3 text-gray-400 hover:text-[#7877C6] transition cursor-pointer p-0.5"
+        className="z-50 absolute bottom-4 right-3 text-gray-400 hover:text-[#7877C6] transition cursor-pointer p-0.5"
       >
         {copied ? <Check size={14} className="text-emerald-500" /> : <Link size={14} />}
       </button>

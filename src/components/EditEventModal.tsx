@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Loader2, Check, Ticket, Shirt, ChevronDown, Video, Save } from "lucide-react";
+import { X, Loader2, Check, Video, Save } from "lucide-react";
 import { getFirestore, doc, updateDoc } from "firebase/firestore";
 import app from '../config/firebase';
 import { type Event } from "./EventCard";

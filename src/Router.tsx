@@ -13,13 +13,13 @@ import Directors from "./pages/dashboard/Directors";
 import Settings from "./pages/dashboard/Settings";
 import HelpSupport from "./pages/dashboard/HelpSupport";
 import CreateClub from "./pages/CreateClub";
-import Calendar from "./pages/dashboard/Calendar";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Unsubscribe from "./pages/Unsubscribe";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import TermsOfService from "./pages/TermsOfService";
 import EventPublic from "./pages/EventPublic";
 import EventDetail from "./pages/dashboard/EventDetail";
+import CalendarPage from "./pages/dashboard/CalendarPage";
 
 export default function AppRouter() {
   return (
@@ -45,7 +45,7 @@ export default function AppRouter() {
       >
         <Route index element={<DashboardHome />} />
         <Route path="events/:eventId" element={<EventDetail />} />
-        <Route path="calendar" element={<Calendar />} />
+        <Route path="calendar" element={<CalendarPage />} />
         <Route path="events" element={<Events />} />
         <Route path="directors" element={<Directors />} />
         <Route path="settings" element={<Settings />} />
