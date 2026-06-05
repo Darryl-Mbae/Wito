@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Calendar,
   Settings,
@@ -21,6 +21,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 interface SidebarProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  isCollapsed: boolean; // Added prop definition
+  setIsCollapsed: (isCollapsed: boolean) => void; // Added prop definition
 }
 
 interface NavItem {
@@ -37,9 +39,9 @@ interface NavCategory {
 const SideBar: React.FC<SidebarProps> = ({
   isOpen,
   setIsOpen,
+  isCollapsed, // Received prop
+  setIsCollapsed, // Received prop setter
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
   const { logout } = useLogout();
   const navigate = useNavigate();
   const location = useLocation();
@@ -95,7 +97,7 @@ const SideBar: React.FC<SidebarProps> = ({
     <>
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-gray-900/20 backdrop-blur-xs lg:hidden"
+          className="fixed inset-0 z-50 bg-gray-900/20 backdrop-blur-xs lg:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -141,16 +143,12 @@ const SideBar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {/* Collapse Button */}
+        {/* Collapse Toggle Arrow Button */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="hidden lg:flex absolute -right-3 top-8 h-6 w-6 items-center justify-center rounded-full border border-gray-100 bg-white shadow-xs text-gray-400 hover:text-gray-600 z-50"
+          className="hidden lg:flex absolute -right-3 top-8 h-6 w-6 items-center justify-center rounded-full border border-gray-100 bg-white shadow-xs text-gray-400 hover:text-gray-600 z-50 cursor-pointer"
         >
-          {isCollapsed ? (
-            <ChevronRight size={14} />
-          ) : (
-            <ChevronLeft size={14} />
-          )}
+          {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
 
         <div className="flex flex-1 flex-col justify-between overflow-y-auto">
@@ -166,9 +164,7 @@ const SideBar: React.FC<SidebarProps> = ({
                 <nav className="space-y-1">
                   {cat.items.map((item) => {
                     const Icon = item.icon;
-
-                    const isActive =
-                      routeMap[item.name] === location.pathname;
+                    const isActive = routeMap[item.name] === location.pathname;
 
                     return (
                       <button
@@ -192,16 +188,10 @@ const SideBar: React.FC<SidebarProps> = ({
                         <div className="flex items-center gap-3">
                           <Icon
                             size={18}
-                            className={
-                              isActive
-                                ? "text-[#7877C6]"
-                                : "text-gray-400"
-                            }
+                            className={isActive ? "text-[#7877C6]" : "text-gray-400"}
                           />
 
-                          {!isCollapsed && (
-                            <span>{item.name}</span>
-                          )}
+                          {!isCollapsed && <span>{item.name}</span>}
                         </div>
 
                         {!isCollapsed && item.badge && (
@@ -226,16 +216,13 @@ const SideBar: React.FC<SidebarProps> = ({
                   <Sparkles size={16} />
                 </div>
 
-                <h4 className="text-sm font-semibold">
-                  Upgrade to Premium!
-                </h4>
+                <h4 className="text-sm font-semibold">Upgrade to Premium!</h4>
 
                 <p className="text-xs text-white/70 leading-relaxed">
-                  Upgrade your account and unlock all premium platform
-                  utilities.
+                  Upgrade your account and unlock all premium platform utilities.
                 </p>
 
-                <button className="mt-2 w-full rounded-xl bg-white py-2 text-center text-xs font-semibold text-[#7877C6] hover:bg-white/90">
+                <button className="mt-2 w-full rounded-xl bg-white py-2 text-center text-xs font-semibold text-[#7877C6] hover:bg-white/90 cursor-pointer">
                   Upgrade premium
                 </button>
               </div>

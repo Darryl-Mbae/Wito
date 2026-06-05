@@ -258,45 +258,47 @@ const Events: React.FC = () => {
               </button>
             ))}
           </div>
+          <div className="w-full flex flex-row items-center gap-3 justify-between">
+            {/* Search */}
+            <div className="relative flex-1 max-w-xs">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search events..."
+                className="w-full rounded-[8px] border border-gray-200 bg-white pl-8 pr-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-[#7877C6]/20 transition placeholder:text-gray-400 text-gray-900"
+              />
+            </div>
 
-          {/* Search */}
-          <div className="relative flex-1 max-w-xs">
-            <Search
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-            />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search events..."
-              className="w-full rounded-[8px] border border-gray-200 bg-white pl-8 pr-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-[#7877C6]/20 transition placeholder:text-gray-400 text-gray-900"
-            />
+            {/* View toggle */}
+            <div className="flex gap-1 bg-gray-100 rounded-xl p-1 ml-auto shrink-0">
+              <button
+                onClick={() => setViewMode("grid")}
+                title="Grid view"
+                className={`p-1.5 rounded-lg transition cursor-pointer ${viewMode === "grid"
+                  ? "bg-white text-gray-900"
+                  : "text-gray-400 hover:text-gray-600"
+                  }`}
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                title="List view"
+                className={`p-1.5 rounded-lg transition cursor-pointer ${viewMode === "list"
+                  ? "bg-white text-gray-900"
+                  : "text-gray-400 hover:text-gray-600"
+                  }`}
+              >
+                <List size={15} />
+              </button>
+            </div>
           </div>
 
-          {/* View toggle */}
-          <div className="flex gap-1 bg-gray-100 rounded-xl p-1 ml-auto shrink-0">
-            <button
-              onClick={() => setViewMode("grid")}
-              title="Grid view"
-              className={`p-1.5 rounded-lg transition cursor-pointer ${viewMode === "grid"
-                ? "bg-white text-gray-900"
-                : "text-gray-400 hover:text-gray-600"
-                }`}
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              onClick={() => setViewMode("list")}
-              title="List view"
-              className={`p-1.5 rounded-lg transition cursor-pointer ${viewMode === "list"
-                ? "bg-white text-gray-900"
-                : "text-gray-400 hover:text-gray-600"
-                }`}
-            >
-              <List size={15} />
-            </button>
-          </div>
         </div>
 
         {/* Select mode bar */}
@@ -344,7 +346,7 @@ const Events: React.FC = () => {
             </p>
           </div>
         ) : viewMode === "grid" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="pb-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filtered.map((event) => (
               <div
                 key={event.id}
@@ -383,7 +385,7 @@ const Events: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col">
+          <div className="flex flex-col pb-5">
             {filtered.map((event) => (
               <div
                 key={event.id}
@@ -403,6 +405,7 @@ const Events: React.FC = () => {
                 <div className={selectMode ? "pl-8" : ""}>
                   <EventCard
                     event={event}
+                    onCardClick={selectMode ? undefined : () => navigate(`/dashboard/events/${event.id}`)}
                     isMine={event.createdBy === currentUser?.uid}
                     canManage={!selectMode && canManage(event)}
                     viewMode="list"

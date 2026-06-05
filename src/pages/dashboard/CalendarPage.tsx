@@ -186,7 +186,7 @@ const EventPanel: React.FC<{
     };
 
     return (
-        <div className={`fixed inset-y-0 right-0 z-40 w-full sm:w-[360px] bg-white border-l border-gray-100 shadow-xl flex flex-col
+        <div className={`fixed inset-y-0 right-0 z-60 w-full sm:w-[360px] bg-white border-l border-gray-100 shadow-xl flex flex-col
             transition-transform duration-300 ease-out ${event ? "translate-x-0" : "translate-x-full"}`}
         >
             {event && (
@@ -646,7 +646,7 @@ const CalendarPage: React.FC = () => {
 
             {/* ── Backdrop ── */}
             {selectedEvent && (
-                <div className="fixed inset-0 z-30 bg-black/10" onClick={() => setSelectedEvent(null)} />
+                <div className="fixed inset-0 z-55 bg-black/10" onClick={() => setSelectedEvent(null)} />
             )}
 
             {/* ── Event panel ── */}

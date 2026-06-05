@@ -27,6 +27,7 @@ interface HeaderProps {
   setSidebarOpen: (v: boolean) => void;
   activeOrg: Organization | null;
   setActiveOrg: React.Dispatch<React.SetStateAction<Organization | null>>;
+  isCollapsed: boolean; // Added prop type
 }
 
 export function Header({
@@ -35,6 +36,7 @@ export function Header({
   user,
   refreshKey,
   setActiveOrg,
+  isCollapsed, // Destructured prop
 }: HeaderProps) {
   const [open, setOpen] = useState(false);
   const [orgs, setOrgs] = useState<Organization[]>([]);
@@ -74,7 +76,6 @@ export function Header({
     };
   }, []);
 
-  // Fetch orgs — re-runs on auth change or manual refresh
   useEffect(() => {
     const auth = getAuth(app);
     const db = getFirestore(app);
@@ -149,7 +150,6 @@ export function Header({
     return () => unsubscribe();
   }, [setActiveOrg, refreshKey]);
 
-  // Redirect to create-club when genuinely no orgs
   useEffect(() => {
     if (loading) return;
     if (refreshKey > 0) return;
@@ -159,107 +159,110 @@ export function Header({
   }, [loading, orgs, refreshKey, location.pathname, navigate]);
 
   return (
-    <header className="sticky top-0 z-50 flex h-20 w-full items-center justify-between border-b border-gray-100 bg-white px-4 md:px-8 shrink-0">      <div className="flex items-center gap-4 flex-1">
-      <button
-        onClick={() => setSidebarOpen(true)}
-        className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-50 lg:hidden cursor-pointer"
-      >
-        <Menu size={20} />
-      </button>
-
-      <div className="relative" ref={dropdownRef}>
+    <header
+      className={`fixed top-0 right-0 z-40 flex h-20 items-center justify-between border-b border-gray-100 bg-white px-4 md:px-8 shrink-0 transition-all duration-300 ease-in-out left-0 ${isCollapsed ? "lg:left-20" : "lg:left-74"
+        }`}
+    >
+      <div className="flex items-center gap-4 flex-1">
         <button
-          onClick={() => {
-            setOpen((v) => !v);
-            setQuery("");
-          }}
-          disabled={loading || !activeOrg}
-          className="flex items-center gap-2 rounded-xl border border-gray-100 px-2.5 py-1.5 hover:bg-gray-50 transition cursor-pointer disabled:opacity-50"
+          onClick={() => setSidebarOpen(true)}
+          className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-50 lg:hidden cursor-pointer"
         >
-          <div
-            className={`flex h-[26px] w-[26px] items-center justify-center rounded-md ${activeOrg ? activeOrg.color : "bg-gray-200"
-              }`}
-          >
-            <Building2 size={13} className="text-white" />
-          </div>
-
-          <span className="text-[13.5px] font-medium text-gray-800">
-            {loading ? "Loading..." : activeOrg?.name || "No Organization"}
-          </span>
-
-          <ChevronDown
-            size={13}
-            className={`text-gray-400 transition-transform ${open ? "rotate-180" : ""
-              }`}
-          />
+          <Menu size={20} />
         </button>
 
-        {open && (
-          <div className="absolute left-0 top-[calc(100%+6px)] w-[260px] rounded-xl border border-gray-100 bg-white shadow-xl shadow-gray-200/50 z-50 overflow-hidden">
-            <div className="flex items-center gap-2 border-b border-gray-100 px-3.5 py-2.5">
-              <Search size={14} className="text-gray-400" />
-              <input
-                ref={inputRef}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Find organization..."
-                className="w-full bg-transparent text-[13px] text-gray-700 placeholder-gray-400 outline-none"
-              />
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => {
+              setOpen((v) => !v);
+              setQuery("");
+            }}
+            disabled={loading || !activeOrg}
+            className="flex items-center gap-2 rounded-xl border border-gray-100 px-2.5 py-1.5 hover:bg-gray-50 transition cursor-pointer disabled:opacity-50"
+          >
+            <div
+              className={`flex h-[26px] w-[26px] items-center justify-center rounded-md ${activeOrg ? activeOrg.color : "bg-gray-200"
+                }`}
+            >
+              <Building2 size={13} className="text-white" />
             </div>
 
-            <div className="py-1.5 max-h-[200px] overflow-y-auto">
-              {filtered.map((org) => (
-                <button
-                  key={org.id}
-                  onClick={() => {
-                    setActiveOrg(org);
-                    setOpen(false);
-                  }}
-                  className="flex w-full items-center justify-between px-3.5 py-2 hover:bg-gray-50 transition cursor-pointer"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className={`flex h-[22px] w-[22px] items-center justify-center rounded-[5px] text-[11px] font-semibold text-white ${org.color}`}
-                    >
-                      {org.name[0]?.toUpperCase()}
+            <span className="text-[13.5px] font-medium text-gray-800">
+              {loading ? "Loading..." : activeOrg?.name || "No Organization"}
+            </span>
+
+            <ChevronDown
+              size={13}
+              className={`text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+            />
+          </button>
+
+          {open && (
+            <div className="absolute left-0 top-[calc(100%+6px)] w-[260px] rounded-xl border border-gray-100 bg-white shadow-xl shadow-gray-200/50 z-50 overflow-hidden">
+              <div className="flex items-center gap-2 border-b border-gray-100 px-3.5 py-2.5">
+                <Search size={14} className="text-gray-400" />
+                <input
+                  ref={inputRef}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Find organization..."
+                  className="w-full bg-transparent text-[13px] text-gray-700 placeholder-gray-400 outline-none"
+                />
+              </div>
+
+              <div className="py-1.5 max-h-[200px] overflow-y-auto">
+                {filtered.map((org) => (
+                  <button
+                    key={org.id}
+                    onClick={() => {
+                      setActiveOrg(org);
+                      setOpen(false);
+                    }}
+                    className="flex w-full items-center justify-between px-3.5 py-2 hover:bg-gray-50 transition cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={`flex h-[22px] w-[22px] items-center justify-center rounded-[5px] text-[11px] font-semibold text-white ${org.color}`}
+                      >
+                        {org.name[0]?.toUpperCase()}
+                      </div>
+                      <span className="text-[13px] text-gray-700 truncate">
+                        {org.name}
+                      </span>
                     </div>
-                    <span className="text-[13px] text-gray-700 truncate">
-                      {org.name}
-                    </span>
+                    {activeOrg?.id === org.id && (
+                      <Check size={14} className="text-[#7877C6]" />
+                    )}
+                  </button>
+                ))}
+
+                {filtered.length === 0 && (
+                  <div className="px-3.5 py-3 text-[13px] text-gray-400 text-center">
+                    No organizations found
                   </div>
-                  {activeOrg?.id === org.id && (
-                    <Check size={14} className="text-[#7877C6]" />
-                  )}
+                )}
+              </div>
+
+              <div className="h-px bg-gray-100" />
+
+              <div className="py-1.5">
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    navigate("/dashboard/create-club");
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3.5 py-2 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  <Plus size={15} className="text-gray-400" />
+                  <span className="text-[13px] text-gray-600">
+                    New organization
+                  </span>
                 </button>
-              ))}
-
-              {filtered.length === 0 && (
-                <div className="px-3.5 py-3 text-[13px] text-gray-400 text-center">
-                  No organizations found
-                </div>
-              )}
+              </div>
             </div>
-
-            <div className="h-px bg-gray-100" />
-
-            <div className="py-1.5">
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  navigate("/dashboard/create-club");
-                }}
-                className="flex w-full items-center gap-2.5 px-3.5 py-2 hover:bg-gray-50 transition cursor-pointer"
-              >
-                <Plus size={15} className="text-gray-400" />
-                <span className="text-[13px] text-gray-600">
-                  New organization
-                </span>
-              </button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
 
       <div className="flex items-center gap-2">
         <div className="relative">
