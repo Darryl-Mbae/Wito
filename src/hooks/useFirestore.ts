@@ -10,6 +10,8 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import app from "../config/firebase";
+import { EMAIL_TEMPLATES } from "../lib/emails/templates";
+import { useMailtrap } from "./useMailtrap";
 
 type ProfileData = {
   email: string;
@@ -85,6 +87,8 @@ export const resolveInviteToken = async (uid: string, token: string): Promise<bo
 export const useCreatUser = () => {
   const [dbError, setDbError] = useState<string | null>(null);
   const [isDbPending, setIsDbPending] = useState(false);
+  const { sendEmail } = useMailtrap();
+
 
   const db = getFirestore(app);
 
@@ -116,6 +120,21 @@ export const useCreatUser = () => {
         await setDoc(userRef, payload);
 
         console.log("Firestore profile created.");
+        // Send WELCOME email after user creation
+        try {
+          await sendEmail(
+            profileData.email,
+            EMAIL_TEMPLATES.welcomeEmail.uuid,
+            {
+              email: profileData.email,
+              company_name: "Your Platform Name", // or dynamic if you have it
+            }
+          );
+
+          console.log("Welcome email sent to:", profileData.email);
+        } catch (err) {
+          console.error("Welcome email failed:", err);
+        }
 
         // Auto-resolve any existing invites for this email
         try {

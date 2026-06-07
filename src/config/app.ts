@@ -3,11 +3,11 @@
 // ─────────────────────────────────────────────────────────────
 
 const appConfig = {
-  name: "Shopeers",
+  name: "Wito",
   logoUrl: "/images/logo.png",
   tagline: "Manage your community, effortlessly.",
-  supportEmail: "support@shopeers.com",
-  termsUrl: "#",
+  supportEmail: "support@wito.com",
+  termsUrl: "/terms-of-service",
 };
 
 export default appConfig;

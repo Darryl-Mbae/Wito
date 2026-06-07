@@ -19,3 +19,18 @@ body {
   overflow-x: hidden;
 
 }
+
+/* Chrome, Safari, and newer versions of Edge (Blink engine) */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+/* Firefox and IE/Legacy Edge */
+html,
+body {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}

@@ -8,8 +8,14 @@ import {
   Search,
   Plus,
   Check,
+  LogOut,
+  Settings,
 } from "lucide-react";
-import { getAuth, onAuthStateChanged, type User as AuthUser } from "firebase/auth";
+import {
+  getAuth,
+  onAuthStateChanged,
+  type User as AuthUser,
+} from "firebase/auth";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import app from "../config/firebase";
 
@@ -18,6 +24,7 @@ export interface Organization {
   name: string;
   color: string;
   role?: string;
+  plan?: string;
   createdBy: string;
 }
 
@@ -27,7 +34,7 @@ interface HeaderProps {
   setSidebarOpen: (v: boolean) => void;
   activeOrg: Organization | null;
   setActiveOrg: React.Dispatch<React.SetStateAction<Organization | null>>;
-  isCollapsed: boolean; // Added prop type
+  isCollapsed: boolean;
 }
 
 export function Header({
@@ -36,22 +43,35 @@ export function Header({
   user,
   refreshKey,
   setActiveOrg,
-  isCollapsed, // Destructured prop
+  isCollapsed,
 }: HeaderProps) {
   const [open, setOpen] = useState(false);
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [userPopoverOpen, setUserPopoverOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const userPopoverRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const location = useLocation();
   const navigate = useNavigate();
 
+  const isNotificationsPage = location.pathname === "/dashboard/notifications";
+
   const filtered = orgs.filter((o) =>
     o.name.toLowerCase().includes(query.toLowerCase())
   );
+
+  // Format createdAt from Firebase user metadata
+  const createdAt = user?.metadata?.creationTime
+    ? new Date(user.metadata.creationTime).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+    : null;
 
   useEffect(() => {
     if (open) {
@@ -59,14 +79,16 @@ export function Header({
     }
   }, [open]);
 
+  // Close org dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (!dropdownRef.current?.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      if (!dropdownRef.current?.contains(e.target as Node)) setOpen(false);
     };
     const keyHandler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        setUserPopoverOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     document.addEventListener("keydown", keyHandler);
@@ -76,10 +98,20 @@ export function Header({
     };
   }, []);
 
+  // Close user popover on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!userPopoverRef.current?.contains(e.target as Node)) {
+        setUserPopoverOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   useEffect(() => {
     const auth = getAuth(app);
     const db = getFirestore(app);
-
     setLoading(true);
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -92,7 +124,6 @@ export function Header({
 
       try {
         const userDoc = await getDoc(doc(db, "users", user.uid));
-
         if (!userDoc.exists()) {
           setLoading(false);
           return;
@@ -114,15 +145,14 @@ export function Header({
         for (let i = 0; i < userOrgs.length; i++) {
           const orgRef = userOrgs[i];
           if (!orgRef.id) continue;
-
           const orgDoc = await getDoc(doc(db, "organizations", orgRef.id));
           if (!orgDoc.exists()) continue;
-
           fetchedOrgs.push({
             id: orgRef.id,
             name: orgDoc.data().name || "Unnamed Club",
             color: colors[i % colors.length],
             role: orgRef.role,
+            plan: orgDoc.data().plan || "free",
             createdBy: orgDoc.data().createdBy || "",
           });
         }
@@ -131,13 +161,10 @@ export function Header({
 
         setActiveOrg((current) => {
           if (!current) return fetchedOrgs[0] ?? null;
-
           const stillExists = fetchedOrgs.find((o) => o.id === current.id);
           if (!stillExists) return fetchedOrgs[0] ?? null;
-
           const lastOrg = fetchedOrgs[fetchedOrgs.length - 1];
           if (refreshKey > 0 && lastOrg.id !== current.id) return lastOrg;
-
           return current;
         });
       } catch (error) {
@@ -158,11 +185,18 @@ export function Header({
     }
   }, [loading, orgs, refreshKey, location.pathname, navigate]);
 
+  const initials = user?.displayName
+    ?.split(" ")
+    .map((n: string) => n[0])
+    .join("")
+    .toUpperCase();
+
   return (
     <header
       className={`fixed top-0 right-0 z-40 flex h-20 items-center justify-between border-b border-gray-100 bg-white px-4 md:px-8 shrink-0 transition-all duration-300 ease-in-out left-0 ${isCollapsed ? "lg:left-20" : "lg:left-74"
         }`}
     >
+      {/* Left: hamburger + org switcher */}
       <div className="flex items-center gap-4 flex-1">
         <button
           onClick={() => setSidebarOpen(true)}
@@ -186,14 +220,13 @@ export function Header({
             >
               <Building2 size={13} className="text-white" />
             </div>
-
             <span className="text-[13.5px] font-medium text-gray-800">
               {loading ? "Loading..." : activeOrg?.name || "No Organization"}
             </span>
-
             <ChevronDown
               size={13}
-              className={`text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+              className={`text-gray-400 transition-transform ${open ? "rotate-180" : ""
+                }`}
             />
           </button>
 
@@ -244,7 +277,6 @@ export function Header({
               </div>
 
               <div className="h-px bg-gray-100" />
-
               <div className="py-1.5">
                 <button
                   onClick={() => {
@@ -264,9 +296,17 @@ export function Header({
         </div>
       </div>
 
+      {/* Right: notifications + user */}
       <div className="flex items-center gap-2">
+        {/* Notifications bell */}
         <div className="relative">
-          <button className="rounded-xl p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition cursor-pointer">
+          <button
+            onClick={() => navigate("/dashboard/notifications")}
+            className={`rounded-xl p-2 transition cursor-pointer ${isNotificationsPage
+              ? "bg-[rgba(120,119,198,0.08)] text-[#7877C6]"
+              : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+              }`}
+          >
             <Bell size={20} />
           </button>
           <span className="absolute top-2 right-2.5 h-1.5 w-1.5 rounded-full bg-[#7877C6]" />
@@ -274,25 +314,110 @@ export function Header({
 
         <div className="h-6 w-px bg-gray-100" />
 
-        <button className="flex items-center gap-2 rounded-xl p-1 hover:bg-gray-50 transition cursor-pointer">
-          {user?.photoURL ? (
-            <img
-              src={user.photoURL}
-              alt="Avatar"
-              className="h-8 w-8 rounded-full object-cover"
-            />
-          ) : (
-            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-[#7877C6]">
-              <span className="text-white font-semibold text-sm">
-                {user?.displayName
-                  ?.split(" ")
-                  .map((n: string) => n[0])
-                  .join("")
-                  .toUpperCase()}
-              </span>
+        {/* User avatar + popover */}
+        <div className="relative" ref={userPopoverRef}>
+          <button
+            onClick={() => setUserPopoverOpen((v) => !v)}
+            className="flex items-center gap-2 rounded-xl p-1 hover:bg-gray-50 transition cursor-pointer"
+          >
+            {user?.photoURL ? (
+              <img
+                src={user.photoURL}
+                alt="Avatar"
+                className="h-8 w-8 rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-8 w-8 rounded-full bg-[#7877C6]">
+                <span className="text-white font-semibold text-sm">
+                  {initials}
+                </span>
+              </div>
+            )}
+          </button>
+
+          {/* User details popover */}
+          {userPopoverOpen && user && (
+            <div className="absolute right-0 top-[calc(100%+8px)] w-[240px] rounded-xl border border-gray-100 bg-white shadow-xl shadow-gray-200/50 z-50 overflow-hidden">
+              {/* Profile header */}
+              <div className="px-4 py-3.5 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  {user.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt="Avatar"
+                      className="h-10 w-10 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-10 w-10 rounded-full bg-[#7877C6] flex-shrink-0">
+                      <span className="text-white font-semibold text-sm">
+                        {initials}
+                      </span>
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-[13.5px] font-semibold text-gray-800 truncate">
+                      {user.displayName || "User"}
+                    </p>
+                    <p className="text-[11.5px] text-[#7877C6] font-medium truncate">
+                      {activeOrg?.role
+                        ? activeOrg.role.charAt(0).toUpperCase() +
+                        activeOrg.role.slice(1)
+                        : "Member"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Details */}
+              <div className="px-4 py-2.5 border-b border-gray-100 space-y-2">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[12px] text-gray-500 truncate">
+                    {user.email || "—"}
+                  </span>
+                </div>
+                {createdAt && (
+                  <div className="flex items-center gap-2.5">
+
+                    <span className="text-[12px] text-gray-500">
+                      Joined {createdAt}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="py-1.5">
+                <button
+                  onClick={() => {
+                    setUserPopoverOpen(false);
+                    navigate("/dashboard/settings");
+                  }}
+                  className="flex w-full items-center gap-2.5 px-4 py-2 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  <Settings size={13} className="text-gray-400" />
+                  <span className="text-[13px] text-gray-600">
+                    Account settings
+                  </span>
+                </button>
+                <button
+                  onClick={() => {
+                    setUserPopoverOpen(false);
+                    getAuth(app).signOut();
+                  }}
+                  className="flex w-full items-center gap-2.5 px-4 py-2 hover:bg-red-50 transition cursor-pointer group"
+                >
+                  <LogOut
+                    size={13}
+                    className="text-gray-400 group-hover:text-red-400 transition"
+                  />
+                  <span className="text-[13px] text-gray-600 group-hover:text-red-500 transition">
+                    Logout
+                  </span>
+                </button>
+              </div>
             </div>
           )}
-        </button>
+        </div>
       </div>
     </header>
   );

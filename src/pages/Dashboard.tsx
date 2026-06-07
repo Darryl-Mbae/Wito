@@ -25,7 +25,11 @@ const Dashboard: React.FC = () => {
 
   const handleOrgCreated = () => {
     setRefreshKey((k) => k + 1);
-    navigate("/dashboard");
+    navigate("/dashboard/calendar");
+  };
+
+  const handleSettingsSaved = () => {
+    setRefreshKey((k) => k + 1);
   };
 
   if (!user) return null;
@@ -33,13 +37,14 @@ const Dashboard: React.FC = () => {
   return (
     <div className="fixed inset-0 flex h-screen w-screen bg-[#f8fafc] overflow-hidden antialiased text-gray-600">
       <SideBar
+        activeOrg={activeOrg}
         isOpen={sidebarOpen}
         setIsCollapsed={setIsCollapsed}
         isCollapsed={isCollapsed}
         setIsOpen={setSidebarOpen}
       />
 
-      <div className="flex flex-1 flex-col h-full overflow-hidden">
+      <div className="flex flex-1 flex-col h-full overflow-hidden pb-10">
 
         <Header
           user={user}
@@ -51,7 +56,7 @@ const Dashboard: React.FC = () => {
         />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-white pt-25 lg:pt-25 pb-10">
-          <Outlet context={{ onOrgCreated: handleOrgCreated, activeOrg } satisfies DashboardContextType} />
+          <Outlet context={{ onOrgCreated: handleOrgCreated, activeOrg, onSettingsSaved: handleSettingsSaved } satisfies DashboardContextType} />
         </main>
 
       </div>
@@ -60,6 +65,7 @@ const Dashboard: React.FC = () => {
 };
 export type DashboardContextType = {
   onOrgCreated: () => void;
+  onSettingsSaved: () => void;
   activeOrg: Organization | null;
 };
 

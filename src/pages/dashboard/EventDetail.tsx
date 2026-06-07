@@ -201,54 +201,56 @@ const EventDetail: React.FC = () => {
                                 className="w-full rounded-lg border border-gray-200 bg-white pl-8 pr-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-[#7877C6]/20 transition placeholder:text-gray-400 text-gray-900"
                             />
                         </div>
-
-                        <div className="relative group">
-                            <button
-                                disabled
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#7877C6]/30 bg-[#7877C6]/5 text-[#7877C6] text-xs font-medium cursor-not-allowed select-none"
-                            >
-                                <Gem size={12} className="text-[#7877C6]" />
-                                Send attendance email {/* Fixed typo here too! */}
-                            </button>
-
-                            {/* Tooltip - Adjusted position to top-full (below the button) and left-0 */}
-                            <div className="z-40 absolute top-full left-0 mt-2 w-56 hidden group-hover:block">
-                                <div className="bg-gray-900 text-white text-[11px] rounded-lg px-3 py-2 leading-relaxed shadow-lg relative">
-                                    <p className="font-medium mb-0.5 flex items-center gap-1">
-                                        <Gem size={10} className="text-[#7877C6]" /> Premium feature
-                                    </p>
-                                    <p className="text-gray-400">Automatically email all registrants to confirm their attendance with one click.</p>
-
-                                    {/* Arrow - Adjusted to point upwards at the top-left */}
-                                    <div className="absolute bottom-full left-4 border-4 border-transparent border-b-gray-900" />
-                                </div>
-
-                            </div>
-                        </div>
-                        {/* Filter — tabs on desktop, dropdown on mobile */}
-                        <div className="hidden sm:flex gap-1 bg-gray-100 rounded-xl p-1">
-                            {(["all", "attended", "absent"] as const).map((f) => (
+                        <div className="sm:mt-2 flex flex-row gap-4">
+                            <div className="relative group">
                                 <button
-                                    key={f}
-                                    onClick={() => setFilter(f)}
-                                    className={`px-3 py-1 rounded-lg text-[11px] font-medium transition cursor-pointer capitalize ${filter === f
-                                        ? "bg-white text-gray-900 shadow-sm"
-                                        : "text-gray-500 hover:text-gray-700"
-                                        }`}
+                                    disabled
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#7877C6]/30 bg-[#7877C6]/5 text-[#7877C6] text-xs font-medium cursor-not-allowed select-none"
                                 >
-                                    {f}
+                                    <Gem size={12} className="text-[#7877C6]" />
+                                    Send attendance email {/* Fixed typo here too! */}
                                 </button>
-                            ))}
+
+                                {/* Tooltip - Adjusted position to top-full (below the button) and left-0 */}
+                                <div className="z-40 absolute top-full left-0 mt-2 w-56 hidden group-hover:block">
+                                    <div className="bg-gray-900 text-white text-[11px] rounded-lg px-3 py-2 leading-relaxed shadow-lg relative">
+                                        <p className="font-medium mb-0.5 flex items-center gap-1">
+                                            <Gem size={10} className="text-[#7877C6]" /> Premium feature
+                                        </p>
+                                        <p className="text-gray-400">Automatically email all registrants to confirm their attendance with one click.</p>
+
+                                        {/* Arrow - Adjusted to point upwards at the top-left */}
+                                        <div className="absolute bottom-full left-4 border-4 border-transparent border-b-gray-900" />
+                                    </div>
+
+                                </div>
+                            </div>
+                            {/* Filter — tabs on desktop, dropdown on mobile */}
+                            <div className="hidden sm:flex gap-1 bg-gray-100 rounded-xl p-1">
+                                {(["all", "attended", "absent"] as const).map((f) => (
+                                    <button
+                                        key={f}
+                                        onClick={() => setFilter(f)}
+                                        className={`px-3 py-1 rounded-lg text-[11px] font-medium transition cursor-pointer capitalize ${filter === f
+                                            ? "bg-white text-gray-900 shadow-sm"
+                                            : "text-gray-500 hover:text-gray-700"
+                                            }`}
+                                    >
+                                        {f}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <select
+                                value={filter}
+                                onChange={(e) => setFilter(e.target.value as typeof filter)}
+                                className="sm:hidden rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 outline-none focus:ring-1 focus:ring-[#7877C6]/20 cursor-pointer capitalize"
+                            >
+                                {(["all", "attended", "absent"] as const).map((f) => (
+                                    <option key={f} value={f} className="capitalize">{f}</option>
+                                ))}
+                            </select>
                         </div>
-                        <select
-                            value={filter}
-                            onChange={(e) => setFilter(e.target.value as typeof filter)}
-                            className="sm:hidden rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 outline-none focus:ring-1 focus:ring-[#7877C6]/20 cursor-pointer capitalize"
-                        >
-                            {(["all", "attended", "absent"] as const).map((f) => (
-                                <option key={f} value={f} className="capitalize">{f}</option>
-                            ))}
-                        </select>
                     </div>
 
                     {filtered.length === 0 ? (

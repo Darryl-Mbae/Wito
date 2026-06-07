@@ -63,13 +63,13 @@ const ResetPassword = () => {
                 </div>
 
                 {/* Card */}
-                <div className="flex flex-1 items-center justify-center px-4 py-12">
+                <div className="w-[80%] mx-auto flex flex-1 items-center justify-center px-4 py-12">
                     <div className="w-full max-w-sm">
 
                         {/* Header */}
                         <div className="flex flex-col items-center text-center mb-8">
-                            <div className="mb-3 w-12 aspect-square">
-                                <img src={appConfig.logoUrl} alt={appConfig.name} className="w-full aspect-square" />
+                            <div className="mb-3 h-10 w-auto aspect-square">
+                                <img src={appConfig.logoUrl} alt={appConfig.name} className="w-full" />
                             </div>
                             <h1 className="text-2xl font-semibold text-gray-900">Reset your password</h1>
                             <p className="text-sm text-gray-500 mt-1">

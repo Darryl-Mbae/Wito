@@ -13,14 +13,15 @@ export const EMAIL_TEMPLATES = {
         },
     },
     passwordReset: {
-        uuid: "another-uuid-here",
+        uuid: "62d9c0af-1052-478f-94b7-305b2652ad87",
         variables: {} as {
             email: string;
             base_url: string;
+            token: string,
         },
     },
     welcomeEmail: {
-        uuid: "another-uuid-here",
+        uuid: "e88c1ec4-fe6f-41d7-84e8-ac89656e5f0b",
         variables: {} as {
             email: string;
             company_name: string;

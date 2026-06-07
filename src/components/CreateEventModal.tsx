@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X, Plus, Loader2, Check, Video } from "lucide-react";
+import { useState, useRef } from "react";
+import { X, Plus, Loader2, Check, Video, } from "lucide-react";
 
 type EventForm = {
   name: string;
@@ -9,6 +9,7 @@ type EventForm = {
   fee: string;
   dresscode: string;
   description: string;
+  imageURL: string; // Added field
 };
 
 const EMPTY_FORM: EventForm = {
@@ -19,6 +20,7 @@ const EMPTY_FORM: EventForm = {
   fee: "",
   dresscode: "",
   description: "",
+  imageURL: "", // Added field
 };
 
 const isVirtualLink = (loc: string) =>
@@ -38,23 +40,51 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving }) => {
     fee: false,
     dresscode: false,
     description: false,
+    imageURL: false, // Added dynamic toggle state
   });
+
+  // Local state for the uploaded file and its preview URL
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const set = (field: keyof EventForm) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [field]: e.target.value }));
 
-  const toggle = (field: keyof typeof toggles) =>
-    setToggles((t) => ({ ...t, [field]: !t[field] }));
+  const toggle = (field: keyof typeof toggles) => {
+    setToggles((t) => {
+      const nextState = { ...t, [field]: !t[field] };
+      // Clean up file uploads if they uncheck the feature option
+      if (field === "imageURL" && !nextState.imageURL) {
+        setSelectedFile(null);
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        setPreviewUrl("");
+      }
+      return nextState;
+    });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      // Generate a temporary browser URL to showcase the image preview safely
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.date || !form.time || !form.location) return;
+
     await onSubmit({
       ...form,
       fee: toggles.fee ? form.fee : "",
       dresscode: toggles.dresscode ? form.dresscode : "",
       description: toggles.description ? form.description : "",
+      imageURL: "", // Kept as empty string for now per your instruction
     });
   };
 
@@ -80,6 +110,7 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving }) => {
             </p>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer"
           >
@@ -98,7 +129,7 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving }) => {
               type="text"
               value={form.name}
               onChange={set("name")}
-              placeholder="Annual Gala Night"
+              placeholder="Rotaract Installation"
               className={inputCls}
               required
             />
@@ -155,6 +186,49 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving }) => {
           {/* Optional toggles */}
           <div className="space-y-3 pt-2 border-t border-gray-100">
             <p className="text-sm font-medium text-gray-700">Optional details</p>
+
+            {/* Event Poster Upload Option */}
+            <div>
+              <button
+                type="button"
+                onClick={() => toggle("imageURL")}
+                className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition cursor-pointer"
+              >
+                <span className={`w-4 h-4 rounded border flex items-center justify-center transition ${toggles.imageURL ? "bg-[#7877C6] border-[#7877C6]" : "border-gray-300"}`}>
+                  {toggles.imageURL && <Check size={10} className="text-white" />}
+                </span>
+                Event poster
+              </button>
+
+              {toggles.imageURL && (
+                <div className="mt-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+
+                  <div className="flex items-center justify-between px-3 py-2 border border-gray-200 rounded-[8px] bg-white/60">
+
+                    {/* File name OR placeholder */}
+                    <span className="text-sm text-gray-700 truncate max-w-[70%]">
+                      {selectedFile ? selectedFile.name : "No file selected"}
+                    </span>
+
+                    {/* Action button */}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-sm font-medium text-[#7877C6] hover:underline"
+                    >
+                      {selectedFile ? "Change" : "Upload"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Fee */}
             <div>

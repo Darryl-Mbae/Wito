@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronDown, MessageCircle, BookOpen, Mail } from "lucide-react";
+import { ChevronDown, BookOpen, Mail } from "lucide-react";
 
 const faqs = [
   {
@@ -34,7 +34,6 @@ const HelpSupport: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: "Documentation", desc: "Browse guides and tutorials", icon: BookOpen },
-          { label: "Live Chat", desc: "Chat with our support team", icon: MessageCircle },
           { label: "Email Support", desc: "Send us a message", icon: Mail },
         ].map(({ label, desc, icon: Icon }) => (
           <button

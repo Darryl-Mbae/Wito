@@ -14,7 +14,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       setUser(firebaseUser);
       setLoading(false);
     });
-    
+
     return () => unsubscribe();
   }, []);
 

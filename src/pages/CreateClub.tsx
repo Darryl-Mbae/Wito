@@ -60,6 +60,7 @@ export default function CreateClub() {
         invitedDirectors: directorsWithTokens,
         createdBy: user.uid,
         createdAt: new Date(),
+        plan: "free"
       });
 
       // 2. Update user doc

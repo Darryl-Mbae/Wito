@@ -20,6 +20,7 @@ import TermsOfService from "./pages/TermsOfService";
 import EventPublic from "./pages/EventPublic";
 import EventDetail from "./pages/dashboard/EventDetail";
 import CalendarPage from "./pages/dashboard/CalendarPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 export default function AppRouter() {
   return (
@@ -33,6 +34,7 @@ export default function AppRouter() {
       <Route path="/terms-of-service" element={<TermsOfService />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/event/:id" element={<EventPublic />} />
+      <Route path="/reset-password-confirm" element={<ResetPasswordPage />} />
 
       {/* Dashboard Layout */}
       <Route

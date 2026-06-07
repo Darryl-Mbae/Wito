@@ -134,6 +134,7 @@ export const useGoogleAuth = () => {
     const [isGooglePending, setIsGooglePending] = useState(false);
 
     const auth = getAuth(app);
+    const { createUserProfile } = useCreatUser(); // ← ADD THIS
 
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
@@ -147,53 +148,59 @@ export const useGoogleAuth = () => {
         try {
             if (isMobile) {
                 await signInWithRedirect(auth, provider);
+                // execution stops here on mobile (page redirects)
             } else {
                 const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+
+                // ← CREATE PROFILE for Google users (safe to call even if exists)
+                await createUserProfile(user.uid, {
+                    email: user.email!,
+                    name: user.displayName ?? "",
+                });
+
                 setIsGooglePending(false);
-                return result.user;
+                return user;
             }
         } catch (err: unknown) {
             const error = err as any;
-
             if (error.code === "auth/popup-closed-by-user") {
                 setGoogleError("Sign-in cancelled.");
-            } else if (
-                error.code === "auth/account-exists-with-different-credential"
-            ) {
-                setGoogleError(
-                    "Account exists with different login method."
-                );
+            } else if (error.code === "auth/account-exists-with-different-credential") {
+                setGoogleError("Account exists with different login method.");
             } else {
                 setGoogleError("Could not connect to Google.");
             }
-
             setIsGooglePending(false);
         }
     };
 
     const handleRedirectResult = async () => {
-        setIsGooglePending(true);
-
+        // ← Don't set pending true here — only set it if a redirect actually happened
         try {
             const result = await getRedirectResult(auth);
 
             if (result) {
+                setIsGooglePending(true);
+                const user = result.user;
+
+
+                // ← CREATE PROFILE for Google redirect users too
+                await createUserProfile(user.uid, {
+                    email: user.email!,
+                    name: user.displayName ?? "",
+                });
+
                 setIsGooglePending(false);
-                return result.user;
+                return user;
             }
         } catch (err: unknown) {
             const error = err as any;
-
-            if (
-                error.code === "auth/account-exists-with-different-credential"
-            ) {
-                setGoogleError(
-                    "Account exists with different login method."
-                );
+            if (error.code === "auth/account-exists-with-different-credential") {
+                setGoogleError("Account exists with different login method.");
             } else {
                 setGoogleError("Google login failed.");
             }
-        } finally {
             setIsGooglePending(false);
         }
 
