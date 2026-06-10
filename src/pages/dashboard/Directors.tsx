@@ -180,6 +180,11 @@ const Directors: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold text-gray-900">Directors</h1>
+        <p className="text-sm text-gray-500 mt-1">Manage who has access to this organization.</p>
+      </div>
+
       {/* Invite form — hidden for invited members */}
       {!isInvitedMember && (
         <div className="w-full lg:w-[50%] rounded-2xl bg-white py-5">
@@ -255,9 +260,9 @@ const Directors: React.FC = () => {
               ))}
               {directors.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                    <Users className="mx-auto h-8 w-8 text-gray-300 mb-2" />
-                    No directors found.
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                    <Users className="mx-auto h-8 w-8 text-gray-200 mb-2" />
+                    <p className="text-sm font-medium text-gray-500">No directors found.</p>
                   </td>
                 </tr>
               )}

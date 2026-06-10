@@ -7,6 +7,7 @@ import {
     where,
     onSnapshot,
 } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 import app from "../../config/firebase";
 import { type DashboardContextType } from "../Dashboard";
 import {
@@ -24,6 +25,8 @@ import {
     Plus,
     PanelRightOpen,
     PanelRightClose,
+    Sparkles,
+    CheckSquare,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -40,6 +43,11 @@ type CalEvent = {
     imageUrl?: string;
     orgId?: string;
     registered?: unknown[];
+    isTask?: boolean;
+    status?: "todo" | "done";
+    assignee?: string;
+    visibility?: "public" | "private";
+    createdBy?: string;
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -76,12 +84,12 @@ function formatDateLong(dateStr: string) {
         weekday: "long", year: "numeric", month: "long", day: "numeric",
     });
 }
-function formatDateShort(dateStr: string) {
-    const [y, mo, d] = dateStr.split("-").map(Number);
-    return new Date(y, mo - 1, d).toLocaleDateString("en-US", {
-        month: "short", day: "numeric",
-    });
-}
+// function formatDateShort(dateStr: string) {
+//     const [y, mo, d] = dateStr.split("-").map(Number);
+//     return new Date(y, mo - 1, d).toLocaleDateString("en-US", {
+//         month: "short", day: "numeric",
+//     });
+// }
 
 const EVENT_COLORS = [
     { pill: "bg-[#7877C6]/12 text-[#7877C6] border-l-[3px] border-[#7877C6]", dot: "bg-[#7877C6]" },
@@ -212,8 +220,18 @@ const EventPanel: React.FC<{
                     {/* Header */}
                     <div className="flex items-start justify-between p-5 border-b border-gray-100">
                         <div className="flex-1 pr-3">
-                            <p className="text-[10px] font-semibold text-[#7877C6] uppercase tracking-widest mb-1">Event</p>
-                            <h2 className="text-sm font-semibold text-gray-900 leading-snug">{event.name}</h2>
+                            <p className="text-[10px] font-semibold text-[#7877C6] uppercase tracking-widest mb-1">{event.isTask ? "Task" : "Event"}</p>
+                            <h2 className={`text-sm font-semibold text-gray-900 leading-snug ${event.isTask && event.status === 'done' ? 'line-through text-gray-500' : ''}`}>{event.name}</h2>
+                            {event.isTask && (
+                                <div className="flex items-center gap-2 mt-1">
+                                    <span className={`text-xs font-medium ${event.status === 'done' ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                        {event.status === 'done' ? 'Completed' : 'To Do'}
+                                    </span>
+                                    {event.assignee && (
+                                        <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">@{event.assignee}</span>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         {!event.imageUrl && (
                             <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 transition cursor-pointer shrink-0">
@@ -292,12 +310,21 @@ const EventPanel: React.FC<{
 
                     {/* Footer */}
                     <div className="p-4 border-t border-gray-100">
-                        <button
-                            onClick={() => navigate(`/dashboard/events/${event.id}`)}
-                            className="flex items-center justify-center w-full py-2.5 rounded-xl bg-[#7877C6] text-white text-xs font-medium hover:bg-[#6665b5] transition cursor-pointer"
-                        >
-                            View full details
-                        </button>
+                        {event.isTask ? (
+                            <button
+                                onClick={() => navigate("/dashboard/tasks")}
+                                className="flex items-center justify-center w-full py-2.5 rounded-xl border border-[#7877C6] text-[#7877C6] text-xs font-medium hover:bg-[#7877C6]/5 transition cursor-pointer"
+                            >
+                                Go to tasks
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => navigate(`/dashboard/events/${event.id}`)}
+                                className="flex items-center justify-center w-full py-2.5 rounded-xl bg-[#7877C6] text-white text-xs font-medium hover:bg-[#6665b5] transition cursor-pointer"
+                            >
+                                View full details
+                            </button>
+                        )}
                     </div>
                 </>
             )}
@@ -315,6 +342,7 @@ const CalendarPage: React.FC = () => {
     const [year, setYear] = useState(today.getFullYear());
     const [month, setMonth] = useState(today.getMonth());
     const [events, setEvents] = useState<CalEvent[]>([]);
+    const [tasks, setTasks] = useState<CalEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedEvent, setSelectedEvent] = useState<CalEvent | null>(null);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -342,17 +370,70 @@ const CalendarPage: React.FC = () => {
         return () => unsub();
     }, [activeOrg?.id]);
 
+    // Fetch tasks
+    useEffect(() => {
+        const auth = getAuth(app);
+        const currentUser = auth.currentUser;
+        if (!activeOrg?.id || !currentUser) return;
+
+        const db = getFirestore(app);
+        const q = query(collection(db, "tasks"), where("orgId", "==", activeOrg.id));
+        const myName = currentUser.displayName || currentUser.email?.split("@")[0] || "Me";
+
+        const unsub = onSnapshot(q, (snap) => {
+            const fetchedTasks: CalEvent[] = [];
+            snap.docs.forEach((d) => {
+                const data = d.data();
+
+                // Privacy filter
+                if (data.visibility === "private" && data.createdBy !== currentUser.uid && data.assignee !== myName && data.assignee !== currentUser.email) {
+                    return; // Skip private tasks that don't belong to me
+                }
+
+                // Map to CalEvent
+                let dateStr = "";
+                let timeStr = "";
+                if (data.createdAt && data.createdAt.toDate) {
+                    const dObj = data.createdAt.toDate();
+                    dateStr = toYMD(dObj.getFullYear(), dObj.getMonth(), dObj.getDate());
+                    timeStr = `${String(dObj.getHours()).padStart(2, "0")}:${String(dObj.getMinutes()).padStart(2, "0")}`;
+                } else {
+                    // Fallback to today if no date yet
+                    const t = new Date();
+                    dateStr = toYMD(t.getFullYear(), t.getMonth(), t.getDate());
+                    timeStr = "12:00";
+                }
+
+                fetchedTasks.push({
+                    id: d.id,
+                    name: data.title,
+                    date: dateStr,
+                    time: timeStr,
+                    isTask: true,
+                    status: data.status,
+                    assignee: data.assignee,
+                    visibility: data.visibility,
+                    createdBy: data.createdBy,
+                });
+            });
+            setTasks(fetchedTasks);
+        });
+        return () => unsub();
+    }, [activeOrg?.id]);
+
     const todayStr = toYMD(today.getFullYear(), today.getMonth(), today.getDate());
 
-    const eventsByDate = events.reduce<Record<string, CalEvent[]>>((acc, e) => {
+    const combinedEvents = [...events, ...tasks];
+
+    const eventsByDate = combinedEvents.reduce<Record<string, CalEvent[]>>((acc, e) => {
         acc[e.date] = acc[e.date] ? [...acc[e.date], e] : [e];
         return acc;
     }, {});
 
-    const eventDates = new Set(events.map((e) => e.date));
+    const eventDates = new Set(combinedEvents.map((e) => e.date));
 
     // Consistent color per event
-    const colorMap = events.reduce<Record<string, (typeof EVENT_COLORS)[0]>>((acc, e, i) => {
+    const colorMap = combinedEvents.reduce<Record<string, (typeof EVENT_COLORS)[0]>>((acc, e, i) => {
         acc[e.id] = eventColor(i);
         return acc;
     }, {});
@@ -370,9 +451,9 @@ const CalendarPage: React.FC = () => {
     const goToday = () => { setYear(today.getFullYear()); setMonth(today.getMonth()); };
 
     // Sidebar event list — only show if a date is selected
-    const sidebarEvents = selectedDate
-        ? (eventsByDate[selectedDate] || [])
-        : [];
+    // const sidebarEvents = selectedDate
+    //     ? (eventsByDate[selectedDate] || [])
+    //     : [];
 
     return (
 
@@ -384,7 +465,7 @@ const CalendarPage: React.FC = () => {
 
                 {/* Header */}
                 <div className="flex items-center gap-2">
-                    <h1 className="text-lg font-semibold text-gray-900 mr-auto">
+                    <h1 className="text-xl font-semibold text-gray-900 mr-auto">
                         {MONTHS[month]} <span className="text-gray-400 font-normal">{year}</span>
                     </h1>
                     <button
@@ -393,6 +474,13 @@ const CalendarPage: React.FC = () => {
                     >
                         <Plus size={13} />
                         New event
+                    </button>
+                    <button
+                        onClick={() => navigate("/dashboard/tasks")}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition cursor-pointer"
+                    >
+                        <Plus size={13} />
+                        Add task
                     </button>
                     <button
                         onClick={goToday}
@@ -475,19 +563,21 @@ const CalendarPage: React.FC = () => {
                                             className="w-full text-left p-4 hover:bg-gray-50 transition"
                                         >
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span
-                                                    className={`h-2 w-2 rounded-full ${colorMap[e.id]?.dot}`}
-                                                />
+                                                {e.isTask ? (
+                                                    e.status === 'done' ? <Check size={10} className="text-gray-400" /> : <CheckSquare size={10} className="text-[#7877C6]" />
+                                                ) : (
+                                                    <span className={`h-2 w-2 rounded-full ${colorMap[e.id]?.dot}`} />
+                                                )}
                                                 <span className="text-xs text-gray-500">
                                                     {formatTime(e.time)}
                                                 </span>
                                             </div>
 
-                                            <p className="text-sm font-medium text-gray-900">
+                                            <p className={`text-sm font-medium ${e.isTask && e.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
                                                 {e.name}
                                             </p>
 
-                                            {e.location && (
+                                            {e.location && !e.isTask && (
                                                 <p className="text-xs text-gray-400 mt-1">
                                                     {isVirtual(e.location)
                                                         ? "Online"
@@ -548,8 +638,9 @@ const CalendarPage: React.FC = () => {
                                                     <button
                                                         key={e.id}
                                                         onClick={(ev) => { ev.stopPropagation(); setSelectedEvent(e); }}
-                                                        className={`w-full text-left text-[9px] sm:text-[10px] font-medium px-1.5 py-0.5 rounded truncate transition hover:opacity-75 cursor-pointer leading-tight ${colorMap[e.id]?.pill}`}
+                                                        className={`w-full text-left text-[9px] sm:text-[10px] font-medium px-1.5 py-0.5 rounded truncate transition hover:opacity-75 cursor-pointer leading-tight flex items-center gap-1 ${e.isTask ? (e.status === 'done' ? 'bg-gray-100 text-gray-500 line-through' : 'bg-gray-50 text-gray-700 border border-gray-200') : colorMap[e.id]?.pill}`}
                                                     >
+                                                        {e.isTask && (e.status === 'done' ? <Check size={8} /> : <CheckSquare size={8} />)}
                                                         <span className="hidden sm:inline">{formatTime(e.time)} </span>{e.name}
                                                     </button>
                                                 ))}
@@ -587,58 +678,54 @@ const CalendarPage: React.FC = () => {
                     <div className="bg-white rounded-2xl border border-gray-100 flex-1 overflow-hidden flex flex-col min-h-0">
                         <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                             <div>
-                                <p className="text-[11px] font-semibold text-gray-700">
-                                    {selectedDate ? formatDateShort(selectedDate) : "Select a day"}
+                                <p className="text-xs font-semibold text-gray-700">
+                                    {MONTHS[month]} {year}
                                 </p>
-                                {selectedDate && (
-                                    <p className="text-[10px] text-gray-400 mt-0.5">
-                                        {sidebarEvents.length === 0 ? "No events" : `${sidebarEvents.length} event${sidebarEvents.length > 1 ? "s" : ""}`}
-                                    </p>
-                                )}
+                                <p className="text-[10px] text-gray-400 mt-0.5">
+                                    {Object.values(eventsByDate)
+                                        .flat()
+                                        .filter(e => e.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`))
+                                        .length} events this month
+                                </p>
                             </div>
-                            {selectedDate && (
-                                <button
-                                    onClick={() => setSelectedDate(null)}
-                                    className="p-1 rounded-lg hover:bg-gray-100 transition cursor-pointer"
-                                >
-                                    <X size={12} className="text-gray-400" />
-                                </button>
-                            )}
+                            {/* ✅ Make Flyer button */}
+                            <button
+                                onClick={() => navigate(`/dashboard/designs?month=${year}-${month + 1}`)}
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#7877C6] text-white text-[10px] font-semibold hover:bg-[#6665b5] transition cursor-pointer"
+                            >
+                                <Sparkles size={10} />
+                                Make flyer
+                            </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto">
-                            {!selectedDate ? (
-                                <div className="flex flex-col items-center justify-center h-32 gap-2">
-                                    <Calendar size={20} className="text-gray-200" />
-                                    <p className="text-[11px] text-gray-400 text-center px-4">Click a day to see its events</p>
-                                </div>
-                            ) : sidebarEvents.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-32 gap-2">
-                                    <Calendar size={20} className="text-gray-200" />
-                                    <p className="text-[11px] text-gray-400">No events this day</p>
-                                </div>
-                            ) : (
-                                <div className="divide-y divide-gray-50">
-                                    {sidebarEvents.map((e) => (
-                                        <button
-                                            key={e.id}
-                                            onClick={() => setSelectedEvent(e)}
-                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 transition cursor-pointer"
-                                        >
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${colorMap[e.id]?.dot}`} />
-                                                <span className="text-[10px] text-gray-400">{formatTime(e.time)}</span>
-                                            </div>
-                                            <p className="text-xs font-medium text-gray-800 leading-tight">{e.name}</p>
-                                            {e.location && (
-                                                <p className="text-[10px] text-gray-400 mt-0.5 truncate">
-                                                    {isVirtual(e.location) ? "Online" : e.location}
-                                                </p>
-                                            )}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                        {/* Monthly event list */}
+                        <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+                            {Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1)
+                                .flatMap(day => {
+                                    const ymd = toYMD(year, month, day);
+                                    return (eventsByDate[ymd] || []).map(e => ({ ...e, _day: day }));
+                                })
+                                .map(e => (
+                                    <button key={e.id} onClick={() => setSelectedEvent(e)}
+                                        className="w-full text-left px-4 py-3 hover:bg-gray-50 transition flex gap-3 items-start">
+                                        <div className="w-8 text-center shrink-0">
+                                            <p className="text-sm font-bold text-[#7877C6] leading-none">{e._day}</p>
+                                            <p className="text-[9px] text-gray-400 uppercase mt-0.5">
+                                                {new Date(year, month, e._day).toLocaleDateString('en', { weekday: 'short' })}
+                                            </p>
+                                        </div>
+                                        <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${colorMap[e.id]?.dot}`} />
+                                        <div className="flex-1 min-w-0">
+                                            <p className={`text-xs font-medium truncate ${e.isTask && e.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+                                                {e.name}
+                                            </p>
+                                            <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
+                                                {e.isTask && (e.status === 'done' ? <Check size={8} className="text-gray-400" /> : <CheckSquare size={8} className="text-[#7877C6]" />)}
+                                                {formatTime(e.time)}
+                                            </p>
+                                        </div>
+                                    </button>
+                                ))}
                         </div>
                     </div>
                 </div>

@@ -21,6 +21,9 @@ import EventPublic from "./pages/EventPublic";
 import EventDetail from "./pages/dashboard/EventDetail";
 import CalendarPage from "./pages/dashboard/CalendarPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import { NotificationsPage } from "./pages/NotificationsPage";
+import DesignsPage from "./pages/dashboard/DesignPage";
+import TasksPage from "./pages/dashboard/TasksPage";
 
 export default function AppRouter() {
   return (
@@ -49,7 +52,10 @@ export default function AppRouter() {
         <Route path="events/:eventId" element={<EventDetail />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="events" element={<Events />} />
+        <Route path="design" element={<DesignsPage />} />
+        <Route path='notifications' element={<NotificationsPage />} />
         <Route path="directors" element={<Directors />} />
+        <Route path="tasks" element={<TasksPage />} />
         <Route path="settings" element={<Settings />} />
         <Route path="help" element={<HelpSupport />} />
         <Route path="create-club" element={<CreateClub />} />

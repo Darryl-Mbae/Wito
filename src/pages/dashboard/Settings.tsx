@@ -82,23 +82,22 @@ const Settings: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">Settings</h2>
+        <h1 className="text-xl font-semibold text-gray-900">Settings</h1>
         <p className="text-sm text-gray-500 mt-1">Manage your account and preferences.</p>
       </div>
 
       {/* Tab bar */}
-      <div className="border-b border-gray-100 flex gap-0 overflow-x-auto">
-        {sections.map(({ id, label, icon: SectionIcon }) => (
+      <div className="flex gap-4 border-b border-gray-100 shrink-0 w-fit" style={{ scrollbarWidth: "none" }}>
+        {sections.map(({ id, label }) => (
           <button
             key={id}
             onClick={() => setActiveSection(id)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition cursor-pointer whitespace-nowrap
+            className={`pb-2.5 text-sm font-medium border-b-2 -mb-[1px] transition cursor-pointer whitespace-nowrap
               ${activeSection === id
                 ? "border-[#7877C6] text-[#7877C6]"
                 : "border-transparent text-gray-500 hover:text-gray-900"
               }`}
           >
-            <SectionIcon size={15} />
             {label}
           </button>
         ))}

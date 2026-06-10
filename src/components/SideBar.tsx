@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Calendar,
   Settings,
@@ -13,12 +13,18 @@ import {
   PlusCircle,
   Gem,
   type LucideIcon,
+  Palette,
+  CheckSquare,
 } from "lucide-react";
 import { Tooltip } from "react-tooltip";
 import appConfig from "../config/app";
 import { useLogout } from "../hooks/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
 import type { Organization } from "./Header";
+import { PremiumFeature } from "./PremiumFeature";
+import { getFirestore, collection, query, where, onSnapshot } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import app from "../config/firebase";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -52,6 +58,40 @@ const SideBar: React.FC<SidebarProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
 
+  const auth = getAuth(app);
+  const currentUser = auth.currentUser;
+
+  const [taskCount, setTaskCount] = useState(0);
+
+  useEffect(() => {
+    if (!activeOrg || !currentUser) {
+      setTaskCount(0);
+      return;
+    }
+
+    const db = getFirestore(app);
+    const q = query(
+      collection(db, "tasks"),
+      where("orgId", "==", activeOrg.id),
+      where("status", "==", "todo")
+    );
+
+    const myName = currentUser.displayName || currentUser.email?.split("@")[0] || "Me";
+
+    const unsub = onSnapshot(q, (snap) => {
+      let count = 0;
+      snap.forEach((doc) => {
+        const data = doc.data();
+        if (data.assignee === myName || data.assignee === currentUser.email) {
+          count++;
+        }
+      });
+      setTaskCount(count);
+    });
+
+    return () => unsub();
+  }, [activeOrg, currentUser]);
+
   const navigationConfig: NavCategory[] = [
     {
       category: "Overview",
@@ -64,7 +104,10 @@ const SideBar: React.FC<SidebarProps> = ({
         },
         { name: "Calendar", icon: Calendar },
         { name: "Events", icon: PlusCircle },
+        { name: "Design", icon: Palette },
+        { name: "Tasks", icon: CheckSquare, badge: taskCount > 0 ? taskCount : undefined },
         { name: "Directors", icon: Users },
+
       ],
     },
     {
@@ -79,6 +122,8 @@ const SideBar: React.FC<SidebarProps> = ({
 
   const routeMap: Record<string, string> = {
     Analytics: "/dashboard",
+    Design: "/dashboard/design",
+    Tasks: "/dashboard/tasks",
     Calendar: "/dashboard/calendar",          // index route is now CalendarPage
     Events: "/dashboard/events",
     Directors: "/dashboard/directors",
@@ -164,7 +209,13 @@ const SideBar: React.FC<SidebarProps> = ({
                     const isActive = routeMap[item.name] === location.pathname;
 
                     return (
-                      <div key={item.name} className="relative group">
+                      <PremiumFeature
+                        key={item.name}
+                        isPremium={!!item.premium}
+                        description={item.premiumDescription || ""}
+                        tooltipPosition={isCollapsed ? "right" : "bottom-left"}
+                        className={isCollapsed ? "flex justify-center" : "block"}
+                      >
                         <button
                           onClick={() => handleNavClick(item.name)}
                           {...(isCollapsed ? {
@@ -196,20 +247,7 @@ const SideBar: React.FC<SidebarProps> = ({
                             </span>
                           )}
                         </button>
-
-                        {/* Premium tooltip */}
-                        {!isCollapsed && item.premium && (
-                          <div className="z-40 absolute top-full left-3 mt-1.5 w-56 hidden group-hover:block pointer-events-none">
-                            <div className="bg-gray-900 text-white text-[11px] rounded-lg px-3 py-2 leading-relaxed shadow-lg relative">
-                              <div className="absolute bottom-full left-4 border-4 border-transparent border-b-gray-900" />
-                              <p className="font-medium mb-0.5 flex items-center gap-1">
-                                <Gem size={10} className="text-[#7877C6]" /> Premium feature
-                              </p>
-                              <p className="text-gray-400">{item.premiumDescription}</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      </PremiumFeature>
                     );
                   })}
                 </nav>

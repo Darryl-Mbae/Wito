@@ -26,7 +26,7 @@ const HelpSupport: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">Help & Support</h2>
+        <h1 className="text-xl font-semibold text-gray-900">Help & Support</h1>
         <p className="text-sm text-gray-500 mt-1">Find answers or reach out to our team.</p>
       </div>
 

@@ -63,7 +63,7 @@ const ResetPassword = () => {
                 </div>
 
                 {/* Card */}
-                <div className="w-[80%] mx-auto flex flex-1 items-center justify-center px-4 py-12">
+                <div className="w-[85%] mx-auto flex flex-1 items-center justify-center px-4 py-12">
                     <div className="w-full max-w-sm">
 
                         {/* Header */}

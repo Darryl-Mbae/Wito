@@ -184,9 +184,9 @@ const Events: React.FC = () => {
     return list;
   }, [events, tab, search, currentUser]);
 
-  const mineCount = events.filter(
-    (e) => e.createdBy === currentUser?.uid
-  ).length;
+  // const mineCount = events.filter(
+  //   (e) => e.createdBy === currentUser?.uid
+  // ).length;
 
   const allSelected =
     filtered.length > 0 && selected.size === filtered.length;
@@ -207,7 +207,7 @@ const Events: React.FC = () => {
 
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">Events</h2>
+          <h1 className="text-xl font-semibold text-gray-900">Events</h1>
           <div className="flex items-center gap-2">
             {/* Select toggle — only for owners/managers */}
             {(isOrgOwner || events.some((e) => e.createdBy === currentUser?.uid)) && (
@@ -234,26 +234,25 @@ const Events: React.FC = () => {
 
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-
           {/* Tabs */}
-          <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit shrink-0">
+          <div className="flex gap-4 border-b border-gray-100 shrink-0 w-fit" style={{ scrollbarWidth: "none" }}>
             {(["All", "Mine"] as Tab[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer ${tab === t
-                  ? "bg-white text-gray-900"
-                  : "text-gray-500 hover:text-gray-700"
+                className={`flex items-center gap-2 pb-2.5 text-sm font-medium border-b-2 -mb-[1px] transition cursor-pointer whitespace-nowrap ${tab === t
+                  ? "border-[#7877C6] text-[#7877C6]"
+                  : "border-transparent text-gray-500 hover:text-gray-900"
                   }`}
               >
                 {t === "Mine" ? "Created by me" : "All events"}
                 <span
                   className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t
                     ? "bg-[#7877C6]/10 text-[#7877C6]"
-                    : "bg-gray-200 text-gray-400"
+                    : "bg-gray-100 text-gray-400 group-hover:bg-gray-200"
                     }`}
                 >
-                  {t === "Mine" ? mineCount : events.length}
+                  {t === "All" ? events.length : events.filter((e) => e.createdBy === currentUser?.uid).length}
                 </span>
               </button>
             ))}

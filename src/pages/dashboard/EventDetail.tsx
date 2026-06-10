@@ -27,6 +27,7 @@ import {
     isGoogleMeet,
     type Event,
 } from "../../components/EventCard";
+import { PremiumFeature } from "../../components/PremiumFeature";
 
 type Registrant = {
     name: string;
@@ -202,36 +203,25 @@ const EventDetail: React.FC = () => {
                             />
                         </div>
                         <div className="sm:mt-2 flex flex-row gap-4">
-                            <div className="relative group">
+                            <PremiumFeature 
+                                isPremium={true} 
+                                description="Automatically email all registrants to confirm their attendance with one click."
+                                tooltipPosition="bottom"
+                            >
                                 <button
-                                    disabled
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#7877C6]/30 bg-[#7877C6]/5 text-[#7877C6] text-xs font-medium cursor-not-allowed select-none"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#7877C6]/30 bg-[#7877C6]/5 text-[#7877C6] text-xs font-medium cursor-pointer hover:bg-[#7877C6]/10 transition"
                                 >
                                     <Gem size={12} className="text-[#7877C6]" />
-                                    Send attendance email {/* Fixed typo here too! */}
+                                    Send attendance email
                                 </button>
-
-                                {/* Tooltip - Adjusted position to top-full (below the button) and left-0 */}
-                                <div className="z-40 absolute top-full left-0 mt-2 w-56 hidden group-hover:block">
-                                    <div className="bg-gray-900 text-white text-[11px] rounded-lg px-3 py-2 leading-relaxed shadow-lg relative">
-                                        <p className="font-medium mb-0.5 flex items-center gap-1">
-                                            <Gem size={10} className="text-[#7877C6]" /> Premium feature
-                                        </p>
-                                        <p className="text-gray-400">Automatically email all registrants to confirm their attendance with one click.</p>
-
-                                        {/* Arrow - Adjusted to point upwards at the top-left */}
-                                        <div className="absolute bottom-full left-4 border-4 border-transparent border-b-gray-900" />
-                                    </div>
-
-                                </div>
-                            </div>
+                            </PremiumFeature>
                             {/* Filter — tabs on desktop, dropdown on mobile */}
                             <div className="hidden sm:flex gap-1 bg-gray-100 rounded-xl p-1">
                                 {(["all", "attended", "absent"] as const).map((f) => (
                                     <button
                                         key={f}
                                         onClick={() => setFilter(f)}
-                                        className={`px-3 py-1 rounded-lg text-[11px] font-medium transition cursor-pointer capitalize ${filter === f
+                                        className={`px-3 py-1 rounded-lg text-sm font-medium transition cursor-pointer capitalize ${filter === f
                                             ? "bg-white text-gray-900 shadow-sm"
                                             : "text-gray-500 hover:text-gray-700"
                                             }`}
@@ -256,7 +246,7 @@ const EventDetail: React.FC = () => {
                     {filtered.length === 0 ? (
                         <div className="py-16 text-center">
                             <Users size={24} className="text-gray-200 mx-auto mb-2" />
-                            <p className="text-xs text-gray-400">
+                            <p className="text-sm text-gray-400">
                                 {registered.length === 0
                                     ? "No registrations yet."
                                     : "No results match your search."}

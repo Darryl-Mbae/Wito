@@ -1,23 +1,35 @@
 Saas Project
 
-1. Add Calendar 
-2. Add a reset link page 
-3. Once get email service send email
-	- Welcome message
-	- Reset link 
-	- Registered for the event 
-	- Thank you for attending
-
-4. Reedit Event details
-5. Fix notification 
-
+1.Sign with google redirect problem in mobile phones
+2.Make Terms of Service, Privacy policy and Documentation
+3.Buid Website & Analytics page
+4.Proper FAQs
+5.Whole plans and payment stuff
+6.Firebase rules 
+7.Create campaign on event registration
+8.Add Event to google calendar 
+9.Add image to event creation(also tapping somewhere else makes it stop event creation)
+10.Sharing event url shows alot 
+11.Premium on click not only on hover  (premium hover)
+12.The template thing (Make Design Page workable)
+13.Notification
 
 
 TODO
 - Update google auth 
-( GCP -> API & SERVICES -> OAUTH CONSENT -> BRANDING)
+( GCP -> API & SERVICES -> OAUTH CONSENT -> 
+BRANDING)
+- PWA
+
+
+PAID PEATURES
+- Analytics
+- Export 
+- Attendance
+
 
 
 ERRORS
 - On phone while using google auth it does not redirect 
 - I noticed in event details when i change org it still shows 
+

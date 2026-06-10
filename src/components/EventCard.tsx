@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import {
-  Calendar,
-  Clock,
+
   MapPin,
   Video,
   Ticket,
@@ -313,19 +312,13 @@ const EventCard: React.FC<Props> = ({
         {/* Details */}
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 text-xs text-gray-500">
-            <Calendar size={11} className="text-gray-300 shrink-0" />
             <span>{formatDate(event.date)}</span>
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-500">
-            <Clock size={11} className="text-gray-300 shrink-0" />
             <span>{formatTime(event.time)}</span>
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-500">
-            {virtual ? (
-              <Video size={11} className="text-gray-300 shrink-0" />
-            ) : (
-              <MapPin size={11} className="text-gray-300 shrink-0" />
-            )}
+
             {virtual ? (
               <a
                 href={event.location}
