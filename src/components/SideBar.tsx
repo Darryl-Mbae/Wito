@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from "react";
 import {
   Calendar,
-  Settings,
-  HelpCircle,
-  LogOut,
   ChevronLeft,
   ChevronRight,
   X,
   Sparkles,
-  House,
   Users,
   PlusCircle,
   Gem,
@@ -96,35 +92,37 @@ const SideBar: React.FC<SidebarProps> = ({
     {
       category: "Overview",
       items: [
-        {
-          name: "Analytics",
-          icon: House,
-          premium: activeOrg?.plan === "free",
-          premiumDescription: "View detailed insights on event performance, attendance trends, and revenue over time.",
-        },
+        // {
+        //   name: "Analytics",
+        //   icon: House,
+        //   premium: activeOrg?.plan === "free",
+        //   premiumDescription: "View detailed insights on event performance, attendance trends, and revenue over time.",
+        // },
         { name: "Calendar", icon: Calendar },
         { name: "Events", icon: PlusCircle },
         { name: "Design", icon: Palette },
         { name: "Tasks", icon: CheckSquare, badge: taskCount > 0 ? taskCount : undefined },
         { name: "Directors", icon: Users },
+        // { name: "Logout", icon: LogOut },
+
 
       ],
     },
-    {
-      category: "Preferences",
-      items: [
-        { name: "Settings", icon: Settings },
-        { name: "Help & Support", icon: HelpCircle },
-        { name: "Logout", icon: LogOut },
-      ],
-    },
+    // {
+    //   category: "Preferences",
+    //   items: [
+    //     { name: "Settings", icon: Settings },
+    //     { name: "Help & Support", icon: HelpCircle },
+    //     { name: "Logout", icon: LogOut },
+    //   ],
+    // },
   ];
 
   const routeMap: Record<string, string> = {
     Analytics: "/dashboard",
     Design: "/dashboard/design",
     Tasks: "/dashboard/tasks",
-    Calendar: "/dashboard/calendar",          // index route is now CalendarPage
+    Calendar: "/dashboard",          // index route is now CalendarPage
     Events: "/dashboard/events",
     Directors: "/dashboard/directors",
     Settings: "/dashboard/settings",
@@ -242,7 +240,7 @@ const SideBar: React.FC<SidebarProps> = ({
                           </div>
 
                           {!isCollapsed && item.badge && (
-                            <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-xs font-semibold text-emerald-600">
+                            <span className="flex rounded-full bg-[#7877C6] w-6 h-6 text-xs font-semibold text-white justify-center items-center">
                               {item.badge}
                             </span>
                           )}

@@ -27,6 +27,7 @@ import {
     PanelRightClose,
     Sparkles,
     CheckSquare,
+    MoreVertical,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -84,12 +85,7 @@ function formatDateLong(dateStr: string) {
         weekday: "long", year: "numeric", month: "long", day: "numeric",
     });
 }
-// function formatDateShort(dateStr: string) {
-//     const [y, mo, d] = dateStr.split("-").map(Number);
-//     return new Date(y, mo - 1, d).toLocaleDateString("en-US", {
-//         month: "short", day: "numeric",
-//     });
-// }
+
 
 const EVENT_COLORS = [
     { pill: "bg-[#7877C6]/12 text-[#7877C6] border-l-[3px] border-[#7877C6]", dot: "bg-[#7877C6]" },
@@ -346,15 +342,13 @@ const CalendarPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [selectedEvent, setSelectedEvent] = useState<CalEvent | null>(null);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
-    // Sidebar collapsed by default when on calendar page
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+    const [menuOpen, setMenuOpen] = useState(false);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 1024);
-
         window.addEventListener("resize", handleResize);
-
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
@@ -385,12 +379,10 @@ const CalendarPage: React.FC = () => {
             snap.docs.forEach((d) => {
                 const data = d.data();
 
-                // Privacy filter
                 if (data.visibility === "private" && data.createdBy !== currentUser.uid && data.assignee !== myName && data.assignee !== currentUser.email) {
-                    return; // Skip private tasks that don't belong to me
+                    return;
                 }
 
-                // Map to CalEvent
                 let dateStr = "";
                 let timeStr = "";
                 if (data.createdAt && data.createdAt.toDate) {
@@ -398,7 +390,6 @@ const CalendarPage: React.FC = () => {
                     dateStr = toYMD(dObj.getFullYear(), dObj.getMonth(), dObj.getDate());
                     timeStr = `${String(dObj.getHours()).padStart(2, "0")}:${String(dObj.getMinutes()).padStart(2, "0")}`;
                 } else {
-                    // Fallback to today if no date yet
                     const t = new Date();
                     dateStr = toYMD(t.getFullYear(), t.getMonth(), t.getDate());
                     timeStr = "12:00";
@@ -432,7 +423,6 @@ const CalendarPage: React.FC = () => {
 
     const eventDates = new Set(combinedEvents.map((e) => e.date));
 
-    // Consistent color per event
     const colorMap = combinedEvents.reduce<Record<string, (typeof EVENT_COLORS)[0]>>((acc, e, i) => {
         acc[e.id] = eventColor(i);
         return acc;
@@ -450,14 +440,7 @@ const CalendarPage: React.FC = () => {
     const nextMonth = () => month === 11 ? (setYear(y => y + 1), setMonth(0)) : setMonth(m => m + 1);
     const goToday = () => { setYear(today.getFullYear()); setMonth(today.getMonth()); };
 
-    // Sidebar event list — only show if a date is selected
-    // const sidebarEvents = selectedDate
-    //     ? (eventsByDate[selectedDate] || [])
-    //     : [];
-
     return (
-
-
         <div className="flex gap-5 h-full min-h-0">
 
             {/* ── Main calendar ── */}
@@ -468,20 +451,23 @@ const CalendarPage: React.FC = () => {
                     <h1 className="text-xl font-semibold text-gray-900 mr-auto">
                         {MONTHS[month]} <span className="text-gray-400 font-normal">{year}</span>
                     </h1>
+
+                    {/* Desktop: individual buttons */}
                     <button
                         onClick={() => navigate("/dashboard/events")}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#7877C6] text-white text-xs font-medium hover:bg-[#6665b5] transition cursor-pointer"
+                        className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#7877C6] text-white text-xs font-medium hover:bg-[#6665b5] transition cursor-pointer"
                     >
                         <Plus size={13} />
                         New event
                     </button>
                     <button
                         onClick={() => navigate("/dashboard/tasks")}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition cursor-pointer"
+                        className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition cursor-pointer"
                     >
                         <Plus size={13} />
                         Add task
                     </button>
+
                     <button
                         onClick={goToday}
                         className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 transition cursor-pointer"
@@ -496,7 +482,8 @@ const CalendarPage: React.FC = () => {
                             <ChevronRight size={13} className="text-gray-500" />
                         </button>
                     </div>
-                    {/* Toggle sidebar */}
+
+                    {/* Desktop: sidebar toggle */}
                     <button
                         onClick={() => setSidebarOpen(o => !o)}
                         className="hidden lg:flex p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition cursor-pointer"
@@ -506,90 +493,115 @@ const CalendarPage: React.FC = () => {
                             ? <PanelRightClose size={14} className="text-gray-500" />
                             : <PanelRightOpen size={14} className="text-gray-500" />}
                     </button>
+
+                    {/* Mobile: three-dots menu */}
+                    <div className="relative lg:hidden">
+                        <button
+                            onClick={() => setMenuOpen(o => !o)}
+                            className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition cursor-pointer"
+                            aria-label="More options"
+                        >
+                            <MoreVertical size={15} className="text-gray-500" />
+                        </button>
+                        {menuOpen && (
+                            <>
+                                {/* Backdrop to close */}
+                                <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                                <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden min-w-[150px]">
+                                    <button
+                                        onClick={() => { navigate("/dashboard/events"); setMenuOpen(false); }}
+                                        className="flex items-center gap-2.5 w-full px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 transition"
+                                    >
+                                        <Plus size={13} className="text-[#7877C6]" />
+                                        New event
+                                    </button>
+                                    <div className="h-px bg-gray-100" />
+                                    <button
+                                        onClick={() => { navigate("/dashboard/tasks"); setMenuOpen(false); }}
+                                        className="flex items-center gap-2.5 w-full px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 transition"
+                                    >
+                                        <Plus size={13} className="text-[#7877C6]" />
+                                        Add task
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
 
                 {isMobile ? (
                     <div className="flex flex-col gap-4">
 
+                        {/* Mini calendar */}
                         <MiniCalendar
                             year={year}
                             month={month}
                             selectedDate={selectedDate}
                             eventDates={eventDates}
-                            onSelect={(d) =>
-                                setSelectedDate(prev => prev === d ? null : d)
-                            }
-                            onNavigate={(y, m) => {
-                                setYear(y);
-                                setMonth(m);
-                            }}
+                            onSelect={(d) => setSelectedDate(prev => prev === d ? null : d)}
+                            onNavigate={(y, m) => { setYear(y); setMonth(m); }}
                         />
 
+                        {/* ── This month's events (mirrors desktop sidebar) ── */}
                         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                            <div className="px-4 py-3 border-b border-gray-100">
-                                <h3 className="text-sm font-semibold text-gray-800">
-                                    {selectedDate
-                                        ? formatDateLong(selectedDate)
-                                        : "Select a date"}
-                                </h3>
+                            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-700">
+                                        {MONTHS[month]} {year}
+                                    </p>
+                                    <p className="text-[10px] text-gray-400 mt-0.5">
+                                        {Object.values(eventsByDate)
+                                            .flat()
+                                            .filter(e => e.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`))
+                                            .length} events this month
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => navigate(`/dashboard/design`)}
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#7877C6] text-white text-[10px] font-semibold hover:bg-[#6665b5] transition cursor-pointer"
+                                >
+                                    <Sparkles size={10} />
+                                    Make flyer
+                                </button>
                             </div>
 
-                            {!selectedDate ? (
-                                <div className="p-8 text-center">
-                                    <Calendar
-                                        size={28}
-                                        className="mx-auto text-gray-200 mb-2"
-                                    />
-                                    <p className="text-sm text-gray-400">
-                                        Tap a date to view events
-                                    </p>
-                                </div>
-                            ) : (eventsByDate[selectedDate] || []).length === 0 ? (
-                                <div className="p-8 text-center">
-                                    <Calendar
-                                        size={28}
-                                        className="mx-auto text-gray-200 mb-2"
-                                    />
-                                    <p className="text-sm text-gray-400">
-                                        No events on this day
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="divide-y divide-gray-50">
-                                    {(eventsByDate[selectedDate] || []).map((e) => (
-                                        <button
-                                            key={e.id}
-                                            onClick={() => setSelectedEvent(e)}
-                                            className="w-full text-left p-4 hover:bg-gray-50 transition"
-                                        >
-                                            <div className="flex items-center gap-2 mb-1">
-                                                {e.isTask ? (
-                                                    e.status === 'done' ? <Check size={10} className="text-gray-400" /> : <CheckSquare size={10} className="text-[#7877C6]" />
-                                                ) : (
-                                                    <span className={`h-2 w-2 rounded-full ${colorMap[e.id]?.dot}`} />
-                                                )}
-                                                <span className="text-xs text-gray-500">
-                                                    {formatTime(e.time)}
-                                                </span>
-                                            </div>
-
-                                            <p className={`text-sm font-medium ${e.isTask && e.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
-                                                {e.name}
-                                            </p>
-
-                                            {e.location && !e.isTask && (
-                                                <p className="text-xs text-gray-400 mt-1">
-                                                    {isVirtual(e.location)
-                                                        ? "Online"
-                                                        : e.location}
+                            <div className="divide-y divide-gray-50">
+                                {Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1)
+                                    .flatMap(day => {
+                                        const ymd = toYMD(year, month, day);
+                                        return (eventsByDate[ymd] || []).map(e => ({ ...e, _day: day }));
+                                    })
+                                    .map(e => (
+                                        <button key={e.id} onClick={() => setSelectedEvent(e)}
+                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 transition flex gap-3 items-start">
+                                            <div className="w-8 text-center shrink-0">
+                                                <p className="text-sm font-bold text-[#7877C6] leading-none">{e._day}</p>
+                                                <p className="text-[9px] text-gray-400 uppercase mt-0.5">
+                                                    {new Date(year, month, e._day).toLocaleDateString('en', { weekday: 'short' })}
                                                 </p>
-                                            )}
+                                            </div>
+                                            <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${colorMap[e.id]?.dot}`} />
+                                            <div className="flex-1 min-w-0">
+                                                <p className={`text-xs font-medium truncate ${e.isTask && e.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+                                                    {e.name}
+                                                </p>
+                                                <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
+                                                    {e.isTask && (e.status === 'done' ? <Check size={8} className="text-gray-400" /> : <CheckSquare size={8} className="text-[#7877C6]" />)}
+                                                    {formatTime(e.time)}
+                                                </p>
+                                            </div>
                                         </button>
                                     ))}
-                                </div>
-                            )}
+                                {Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1)
+                                    .flatMap(day => eventsByDate[toYMD(year, month, day)] || [])
+                                    .length === 0 && (
+                                        <div className="p-8 text-center">
+                                            <Calendar size={28} className="mx-auto text-gray-200 mb-2" />
+                                            <p className="text-sm text-gray-400">No events this month</p>
+                                        </div>
+                                    )}
+                            </div>
                         </div>
-
 
                     </div>
                 ) : (
@@ -606,63 +618,62 @@ const CalendarPage: React.FC = () => {
                             <div className="flex-1 flex items-center justify-center">
                                 <div className="animate-spin h-5 w-5 border-2 border-gray-200 border-t-[#7877C6] rounded-full" />
                             </div>
-                        ) :
-                            (
-                                <div className="grid grid-cols-7 flex-1 min-h-0" style={{ gridAutoRows: "1fr" }}>
-                                    {cells.map((day, i) => {
-                                        if (!day) return (
-                                            <div key={i} className={`border-b border-r border-gray-50 bg-gray-50/40 ${i % 7 === 6 ? "border-r-0" : ""}`} />
-                                        );
+                        ) : (
+                            <div className="grid grid-cols-7 flex-1 min-h-0" style={{ gridAutoRows: "1fr" }}>
+                                {cells.map((day, i) => {
+                                    if (!day) return (
+                                        <div key={i} className={`border-b border-r border-gray-50 bg-gray-50/40 ${i % 7 === 6 ? "border-r-0" : ""}`} />
+                                    );
 
-                                        const ymd = toYMD(year, month, day);
-                                        const dayEvents = eventsByDate[ymd] || [];
-                                        const isToday = ymd === todayStr;
-                                        const isSelected = ymd === selectedDate;
+                                    const ymd = toYMD(year, month, day);
+                                    const dayEvents = eventsByDate[ymd] || [];
+                                    const isToday = ymd === todayStr;
+                                    const isSelected = ymd === selectedDate;
 
-                                        return (
-                                            <div
-                                                key={i}
-                                                onClick={() => {
-                                                    setSelectedDate(prev => prev === ymd ? null : ymd);
-                                                    if (!sidebarOpen) setSidebarOpen(true);
-                                                }}
-                                                className={`border-b border-r border-gray-100 p-1.5 flex flex-col gap-0.5 cursor-pointer transition
-                                            ${i % 7 === 6 ? "border-r-0" : ""}
-                                            ${isSelected ? "bg-[#7877C6]/5" : "hover:bg-gray-50/70"}`}
-                                            >
-                                                <div className={`h-5 w-5 flex items-center justify-center rounded-full text-[10px] font-semibold self-start mb-0.5
-                                            ${isToday ? "bg-[#7877C6] text-white" : "text-gray-400"}`}>
-                                                    {day}
-                                                </div>
-                                                {dayEvents.slice(0, 2).map((e) => (
-                                                    <button
-                                                        key={e.id}
-                                                        onClick={(ev) => { ev.stopPropagation(); setSelectedEvent(e); }}
-                                                        className={`w-full text-left text-[9px] sm:text-[10px] font-medium px-1.5 py-0.5 rounded truncate transition hover:opacity-75 cursor-pointer leading-tight flex items-center gap-1 ${e.isTask ? (e.status === 'done' ? 'bg-gray-100 text-gray-500 line-through' : 'bg-gray-50 text-gray-700 border border-gray-200') : colorMap[e.id]?.pill}`}
-                                                    >
-                                                        {e.isTask && (e.status === 'done' ? <Check size={8} /> : <CheckSquare size={8} />)}
-                                                        <span className="hidden sm:inline">{formatTime(e.time)} </span>{e.name}
-                                                    </button>
-                                                ))}
-                                                {dayEvents.length > 2 && (
-                                                    <button
-                                                        onClick={(ev) => { ev.stopPropagation(); setSelectedDate(ymd); setSidebarOpen(true); }}
-                                                        className="text-[9px] text-gray-400 hover:text-[#7877C6] text-left px-1 cursor-pointer"
-                                                    >
-                                                        +{dayEvents.length - 2} more
-                                                    </button>
-                                                )}
+                                    return (
+                                        <div
+                                            key={i}
+                                            onClick={() => {
+                                                setSelectedDate(prev => prev === ymd ? null : ymd);
+                                                if (!sidebarOpen) setSidebarOpen(true);
+                                            }}
+                                            className={`border-b border-r border-gray-100 p-1.5 flex flex-col gap-0.5 cursor-pointer transition
+                                                ${i % 7 === 6 ? "border-r-0" : ""}
+                                                ${isSelected ? "bg-[#7877C6]/5" : "hover:bg-gray-50/70"}`}
+                                        >
+                                            <div className={`h-5 w-5 flex items-center justify-center rounded-full text-[10px] font-semibold self-start mb-0.5
+                                                ${isToday ? "bg-[#7877C6] text-white" : "text-gray-400"}`}>
+                                                {day}
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
+                                            {dayEvents.slice(0, 2).map((e) => (
+                                                <button
+                                                    key={e.id}
+                                                    onClick={(ev) => { ev.stopPropagation(); setSelectedEvent(e); }}
+                                                    className={`w-full text-left text-[9px] sm:text-[10px] font-medium px-1.5 py-0.5 rounded truncate transition hover:opacity-75 cursor-pointer leading-tight flex items-center gap-1 ${e.isTask ? (e.status === 'done' ? 'bg-gray-100 text-gray-500 line-through' : 'bg-gray-50 text-gray-700 border border-gray-200') : colorMap[e.id]?.pill}`}
+                                                >
+                                                    {e.isTask && (e.status === 'done' ? <Check size={8} /> : <CheckSquare size={8} />)}
+                                                    <span className="hidden sm:inline">{formatTime(e.time)} </span>{e.name}
+                                                </button>
+                                            ))}
+                                            {dayEvents.length > 2 && (
+                                                <button
+                                                    onClick={(ev) => { ev.stopPropagation(); setSelectedDate(ymd); setSidebarOpen(true); }}
+                                                    className="text-[9px] text-gray-400 hover:text-[#7877C6] text-left px-1 cursor-pointer"
+                                                >
+                                                    +{dayEvents.length - 2} more
+                                                </button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 )}
 
             </div>
 
-            {/* ── Right sidebar ── */}
+            {/* ── Right sidebar (desktop only) ── */}
             {sidebarOpen && !isMobile && (
                 <div className="hidden lg:flex flex-col gap-3 w-70 shrink-0">
                     <MiniCalendar
@@ -674,7 +685,6 @@ const CalendarPage: React.FC = () => {
                         onNavigate={(y, m) => { setYear(y); setMonth(m); }}
                     />
 
-                    {/* Events for selected date */}
                     <div className="bg-white rounded-2xl border border-gray-100 flex-1 overflow-hidden flex flex-col min-h-0">
                         <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                             <div>
@@ -688,9 +698,8 @@ const CalendarPage: React.FC = () => {
                                         .length} events this month
                                 </p>
                             </div>
-                            {/* ✅ Make Flyer button */}
                             <button
-                                onClick={() => navigate(`/dashboard/designs?month=${year}-${month + 1}`)}
+                                onClick={() => navigate(`/dashboard/design`)}
                                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#7877C6] text-white text-[10px] font-semibold hover:bg-[#6665b5] transition cursor-pointer"
                             >
                                 <Sparkles size={10} />
@@ -698,7 +707,6 @@ const CalendarPage: React.FC = () => {
                             </button>
                         </div>
 
-                        {/* Monthly event list */}
                         <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
                             {Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1)
                                 .flatMap(day => {

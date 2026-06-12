@@ -182,7 +182,6 @@ const Directors: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-gray-900">Directors</h1>
-        <p className="text-sm text-gray-500 mt-1">Manage who has access to this organization.</p>
       </div>
 
       {/* Invite form — hidden for invited members */}
@@ -216,17 +215,17 @@ const Directors: React.FC = () => {
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 border-b border-gray-100 text-gray-500">
               <tr>
-                <th className="px-6 py-4 font-medium">User</th>
+                <th className="hidden md:inline-flex px-6 py-4 font-medium">User</th>
                 <th className="px-6 py-4 font-medium">Name</th>
                 <th className="px-6 py-4 font-medium">Email</th>
-                <th className="px-6 py-4 font-medium">Status</th>
+                <th className="hidden md:inline-flex px-6 py-4 font-medium">Status</th>
                 <th className="px-6 py-4 font-medium text-right"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {directors.map((director) => (
                 <tr key={director.id} className="hover:bg-gray-50/50 transition">
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 hidden md:inline-flex ">
                     <div className="h-8 w-8 rounded-full bg-[#7877C6]/10 flex items-center justify-center shrink-0">
                       <span className="text-[#7877C6] font-medium text-xs">
                         {director.name.charAt(0).toUpperCase()}
@@ -239,7 +238,7 @@ const Directors: React.FC = () => {
                   <td className="px-6 py-4">
                     <p className="text-sm text-gray-500">{director.email}</p>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 hidden md:inline-flex ">
                     <div className="flex items-center gap-2">
                       <div className={`h-1.5 w-1.5 rounded-full ${director.status === "Active" ? "bg-emerald-500" : "bg-amber-500"}`} />
                       <span className="text-sm text-gray-700 font-medium">{director.status}</span>

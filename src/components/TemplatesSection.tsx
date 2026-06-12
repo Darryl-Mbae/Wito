@@ -10,14 +10,14 @@ export type { SavedTemplate, TemplateMethod };
 type FilterType = "post" | "story" | "flyer";
 
 const PRESET_FILTER: Record<string, FilterType> = {
-    "ig-post": "post",
+    "ig-portrait": "post",
     "ig-story": "story",
     "flyer-a4": "flyer",
     "calendar-a4": "flyer",
 };
 
 const ASPECT: Record<FilterType, string> = {
-    post: "1 / 1",
+    post: "4 / 5",
     story: "9 / 16",
     flyer: "794 / 1123",
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Plus, Trash2, CheckCircle2, Circle, Globe, Lock, MoreHorizontal } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, Circle, Globe, Lock } from "lucide-react";
 import {
   getFirestore,
   collection,
@@ -41,7 +41,8 @@ const TasksPage: React.FC = () => {
   const [newTaskAssignee, setNewTaskAssignee] = useState("");
   const [newTaskVisibility, setNewTaskVisibility] = useState<"public" | "private">("public");
   const [activeTab, setActiveTab] = useState<TaskStatus>("todo");
-
+  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
+  const [showVisibilityDropdown, setShowVisibilityDropdown] = useState(false);
   const [directors, setDirectors] = useState<any[]>([]);
 
   useEffect(() => {
@@ -53,10 +54,7 @@ const TasksPage: React.FC = () => {
     }
 
     const db = getFirestore(app);
-    const q = query(
-      collection(db, "tasks"),
-      where("orgId", "==", activeOrg.id)
-    );
+    const q = query(collection(db, "tasks"), where("orgId", "==", activeOrg.id));
 
     setLoading(true);
     const unsub = onSnapshot(q, (snap) => {
@@ -64,18 +62,16 @@ const TasksPage: React.FC = () => {
       data.sort((a, b) => {
         const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : Date.now();
         const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : Date.now();
-        return timeB - timeA; // newest first
+        return timeB - timeA;
       });
       setTasks(data);
       setLoading(false);
     });
 
-    // Fetch directors
     const orgRef = doc(db, "organizations", activeOrg.id);
     const unsubOrg = onSnapshot(orgRef, async (snap) => {
       if (!snap.exists()) return;
       const data = snap.data();
-
       const { getDoc, collection, getDocs, query, where } = await import("firebase/firestore");
 
       const ownerRef = doc(db, "users", data.createdBy);
@@ -86,9 +82,7 @@ const TasksPage: React.FC = () => {
         owner = { name: u.name || "Owner", email: u.email || "" };
       }
 
-      const formattedDirectors: any[] = [
-        { email: owner.email, name: owner.name }
-      ];
+      const formattedDirectors: any[] = [{ email: owner.email, name: owner.name }];
 
       if (data.invitedDirectors && Array.isArray(data.invitedDirectors)) {
         const invitedEmails = data.invitedDirectors.map((i: any) => i.email);
@@ -111,7 +105,7 @@ const TasksPage: React.FC = () => {
         data.invitedDirectors.forEach((invite: any) => {
           formattedDirectors.push({
             email: invite.email,
-            name: emailToName[invite.email] || invite.email
+            name: emailToName[invite.email] || invite.email,
           });
         });
       }
@@ -131,7 +125,6 @@ const TasksPage: React.FC = () => {
 
     try {
       const db = getFirestore(app);
-
       let finalAssignee = newTaskAssignee.trim();
       if (!finalAssignee) {
         finalAssignee = currentUser.displayName || currentUser.email?.split("@")[0] || "Me";
@@ -149,6 +142,8 @@ const TasksPage: React.FC = () => {
       setNewTaskTitle("");
       setNewTaskAssignee("");
       setNewTaskVisibility("public");
+      setShowAssigneeDropdown(false);
+      setShowVisibilityDropdown(false);
     } catch (err) {
       console.error("Error creating task:", err);
     }
@@ -176,9 +171,7 @@ const TasksPage: React.FC = () => {
   if (!activeOrg) {
     return (
       <div className="flex h-full items-center justify-center p-12">
-        <p className="text-gray-500 text-sm">
-          Select an organization to view tasks.
-        </p>
+        <p className="text-gray-500 text-sm">Select an organization to view tasks.</p>
       </div>
     );
   }
@@ -191,34 +184,33 @@ const TasksPage: React.FC = () => {
     );
   }
 
-  const todoTasks = tasks.filter(t => t.status === "todo");
-  const doneTasks = tasks.filter(t => t.status === "done");
+  const todoTasks = tasks.filter((t) => t.status === "todo");
+  const doneTasks = tasks.filter((t) => t.status === "done");
   const displayedTasks = activeTab === "todo" ? todoTasks : doneTasks;
 
   return (
-    <div className="w-full lg:w-[70%] h-full flex flex-col pb-12 space-y-6">
+    <div className="w-full lg:w-[70%] h-full flex flex-col pb-12 space-y-4">
       {/* Header */}
       <div>
         <h1 className="text-xl font-semibold text-gray-900">Tasks</h1>
-        <p className="text-sm text-gray-500 mt-1">Manage and track your organization's work.</p>
       </div>
 
-      {/* Tabs Switcher */}
-      <div className="flex gap-4 border-b border-gray-100 mb-6 shrink-0 w-fit" style={{ scrollbarWidth: "none" }}>
+      {/* Tabs */}
+      <div className="flex gap-4 border-b border-gray-100 shrink-0">
         {(["todo", "done"] as TaskStatus[]).map((t) => (
           <button
             key={t}
             onClick={() => setActiveTab(t)}
             className={`flex items-center gap-2 pb-2.5 text-sm font-medium border-b-2 -mb-[1px] transition cursor-pointer whitespace-nowrap ${activeTab === t
-                ? "border-[#7877C6] text-[#7877C6]"
-                : "border-transparent text-gray-500 hover:text-gray-900"
+              ? "border-[#7877C6] text-[#7877C6]"
+              : "border-transparent text-gray-500 hover:text-gray-900"
               }`}
           >
             {t === "todo" ? "To Do" : "Completed"}
             <span
-              className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === t
-                  ? "bg-[#7877C6]/10 text-[#7877C6]"
-                  : "bg-gray-100 text-gray-400 group-hover:bg-gray-200"
+              className={`text-xs h-5 w-5 flex items-center justify-center rounded-full ${activeTab === t
+                ? "bg-[#7877C6] text-white"
+                : "bg-gray-100 text-gray-400"
                 }`}
             >
               {t === "todo" ? todoTasks.length : doneTasks.length}
@@ -227,123 +219,136 @@ const TasksPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Add Task Form (only show in To Do tab) */}
+      {/* Add Task Form — stacked on mobile */}
       {activeTab === "todo" && (
-        <form onSubmit={handleCreateTask} className="mb-4">
-          <div className="bg-white rounded-xl border border-gray-200 p-2 flex items-center gap-2 sm:gap-3 hover:border-[#7877C6]/40 transition-all relative">
-            <div className="pl-1 sm:pl-3 text-gray-400 shrink-0">
-              <Plus size={18} />
-            </div>
-
-            {/* Task Title Input */}
+        <form onSubmit={handleCreateTask} className="bg-white rounded-xl border border-gray-200 p-3 flex flex-col gap-3 hover:border-[#7877C6]/40 transition-all">
+          {/* Title input — full width */}
+          <div className="flex items-center gap-2">
+            <Plus size={16} className="text-gray-400 shrink-0" />
             <input
               type="text"
               placeholder="Add a new task..."
-              className="flex-1 bg-transparent text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none min-w-0"
+              className="flex-1 bg-transparent  font-medium text-gray-900 placeholder:text-gray-400 outline-none"
               value={newTaskTitle}
               onChange={(e) => setNewTaskTitle(e.target.value)}
             />
+          </div>
 
-            {/* Divider */}
-            <div className="h-6 w-px bg-gray-200 mx-1 hidden sm:block" />
-
-            {/* Assignee Input Area */}
-            <div className="relative shrink-0 flex items-center">
+          {/* Bottom row — assignee + visibility + submit */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Assignee */}
+            <div className="relative">
               {newTaskAssignee ? (
-                <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1.5 rounded-lg border border-gray-100 mr-2 max-w-[120px]">
+                <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1.5 rounded-lg border border-gray-100">
                   <div className="h-4 w-4 rounded-full bg-[#7877C6]/10 flex items-center justify-center shrink-0">
                     <span className="text-[9px] font-bold text-[#7877C6]">
                       {newTaskAssignee.charAt(0).toUpperCase()}
                     </span>
                   </div>
-                  <span className="text-xs font-medium text-gray-600 truncate">{newTaskAssignee}</span>
+                  <span className="text-xs font-medium text-gray-600 max-w-[80px] truncate">{newTaskAssignee}</span>
                   <button
                     type="button"
                     onClick={() => setNewTaskAssignee("")}
-                    className="text-gray-400 hover:text-red-500 ml-0.5"
+                    className="text-gray-400 hover:text-red-500"
                   >
-                    <Trash2 size={12} />
+                    <Trash2 size={11} />
                   </button>
                 </div>
               ) : (
-                <div className="relative group">
-                  <button
-                    type="button"
-                    className="h-8 px-2.5 mr-2 rounded-xl flex items-center justify-center text-gray-400 bg-gray-50 border border-gray-100 hover:bg-[#7877C6]/10 hover:text-[#7877C6] transition cursor-pointer"
-                    title="Assign task"
-                  >
-                    <span className="text-sm font-semibold mr-1">@</span>
-                    <span className="text-xs font-medium whitespace-nowrap">Assign someone</span>
-                  </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAssigneeDropdown((v) => !v);
+                    setShowVisibilityDropdown(false);
+                  }}
+                  className="flex items-center gap-1 h-8 px-2.5 rounded-lg text-xs font-medium text-gray-500 bg-gray-50 border border-gray-100 hover:bg-[#7877C6]/10 hover:text-[#7877C6] transition cursor-pointer"
+                >
+                  <span className="font-semibold">@</span> Assign
+                </button>
+              )}
 
-                  {/* Dropdown for Assignees */}
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 overflow-hidden">
-                    <div className="p-2 border-b border-gray-50 bg-gray-50/50">
-                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Assign to</p>
-                    </div>
-                    <div className="max-h-48 overflow-y-auto p-1">
-                      {directors.map((director: any, idx: number) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setNewTaskAssignee(director.name || director.email.split("@")[0])}
-                          className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition"
-                        >
-                          <div className="h-5 w-5 rounded-full bg-[#7877C6]/10 flex items-center justify-center shrink-0">
-                            <span className="text-[10px] font-bold text-[#7877C6]">
-                              {(director.name || director.email).charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <span className="truncate">{director.name || director.email}</span>
-                        </button>
-                      ))}
-                      {directors.length === 0 && (
-                        <div className="px-3 py-4 text-center text-xs text-gray-400">
-                          No directors found
+              {showAssigneeDropdown && !newTaskAssignee && (
+                <div className="absolute left-0 top-full mt-1 w-48 bg-white border border-gray-100 rounded-xl shadow-lg z-30 overflow-hidden">
+                  <div className="p-2 border-b border-gray-50 bg-gray-50/50">
+                    <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Assign to</p>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto p-1">
+                    {directors.map((director: any, idx: number) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setNewTaskAssignee(director.name || director.email.split("@")[0]);
+                          setShowAssigneeDropdown(false);
+                        }}
+                        className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition"
+                      >
+                        <div className="h-5 w-5 rounded-full bg-[#7877C6]/10 flex items-center justify-center shrink-0">
+                          <span className="text-[10px] font-bold text-[#7877C6]">
+                            {(director.name || director.email).charAt(0).toUpperCase()}
+                          </span>
                         </div>
-                      )}
-                    </div>
+                        <span className="truncate">{director.name || director.email}</span>
+                      </button>
+                    ))}
+                    {directors.length === 0 && (
+                      <div className="px-3 py-4 text-center text-xs text-gray-400">No directors found</div>
+                    )}
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Visibility Menu */}
-            <div className="relative group shrink-0 mr-2">
+            {/* Visibility toggle */}
+            <div className="relative">
               <button
                 type="button"
-                className="h-8 w-8 flex items-center justify-center rounded-xl border border-transparent text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition cursor-pointer relative z-10"
-                title="Task visibility"
+                onClick={() => {
+                  setShowVisibilityDropdown((v) => !v);
+                  setShowAssigneeDropdown(false);
+                }}
+                className={`flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium border transition cursor-pointer ${newTaskVisibility === "private"
+                  ? "bg-amber-50 border-amber-100 text-amber-600"
+                  : "bg-gray-50 border-gray-100 text-gray-500 hover:bg-[#7877C6]/10 hover:text-[#7877C6]"
+                  }`}
               >
-                <MoreHorizontal size={16} />
+                {newTaskVisibility === "private" ? (
+                  <Lock size={12} />
+                ) : (
+                  <Globe size={12} />
+                )}
+                <span className="capitalize">{newTaskVisibility}</span>
               </button>
 
-              <div className="absolute right-0 top-full mt-2 w-32 bg-white border border-gray-100 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 overflow-hidden">
-                <div className="p-1">
-                  <button
-                    type="button"
-                    onClick={() => setNewTaskVisibility("public")}
-                    className={`w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition ${newTaskVisibility === "public" ? "bg-gray-50 text-gray-900" : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"}`}
-                  >
-                    <Globe size={12} className={newTaskVisibility === "public" ? "text-[#7877C6]" : "text-gray-400"} />
-                    Public
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNewTaskVisibility("private")}
-                    className={`w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition ${newTaskVisibility === "private" ? "bg-amber-50 text-amber-700" : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"}`}
-                  >
-                    <Lock size={12} className={newTaskVisibility === "private" ? "text-amber-500" : "text-gray-400"} />
-                    Private
-                  </button>
+              {showVisibilityDropdown && (
+                <div className="absolute left-0 top-full mt-1 w-32 bg-white border border-gray-100 rounded-xl shadow-lg z-30 overflow-hidden">
+                  <div className="p-1">
+                    <button
+                      type="button"
+                      onClick={() => { setNewTaskVisibility("public"); setShowVisibilityDropdown(false); }}
+                      className={`w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition ${newTaskVisibility === "public" ? "bg-gray-50 text-gray-900" : "text-gray-500 hover:bg-gray-50"}`}
+                    >
+                      <Globe size={12} className={newTaskVisibility === "public" ? "text-[#7877C6]" : "text-gray-400"} />
+                      Public
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setNewTaskVisibility("private"); setShowVisibilityDropdown(false); }}
+                      className={`w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition ${newTaskVisibility === "private" ? "bg-amber-50 text-amber-700" : "text-gray-500 hover:bg-gray-50"}`}
+                    >
+                      <Lock size={12} className={newTaskVisibility === "private" ? "text-amber-500" : "text-gray-400"} />
+                      Private
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
+            {/* Spacer + Submit */}
             <button
               type="submit"
               disabled={!newTaskTitle.trim()}
-              className="h-8 px-4 rounded-xl bg-[#7877C6] text-white text-xs font-semibold hover:bg-[#6b6ab3] disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer shrink-0"
+              className="ml-auto h-8 px-4 rounded-xl bg-[#7877C6] text-white text-xs font-semibold hover:bg-[#6b6ab3] disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer shrink-0"
             >
               Add
             </button>
@@ -352,10 +357,10 @@ const TasksPage: React.FC = () => {
       )}
 
       {/* Task List */}
-      <div className="flex-1 overflow-y-auto pr-2" style={{ scrollbarWidth: "none" }}>
+      <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
         <div className="flex flex-col gap-2">
           {displayedTasks.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 flex flex-col items-center justify-center text-center mt-4">
+            <div className="bg-white  p-12 flex flex-col items-center justify-center text-center mt-4">
               <div className="h-12 w-12 rounded-2xl bg-[#7877C6]/8 flex items-center justify-center mb-3">
                 {activeTab === "todo" ? (
                   <CheckCircle2 size={20} className="text-[#7877C6]" />
@@ -373,57 +378,61 @@ const TasksPage: React.FC = () => {
               </p>
             </div>
           ) : (
-            displayedTasks.map(task => (
+            displayedTasks.map((task) => (
               <div
                 key={task.id}
-                className="group flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 hover:border-[#7877C6]/30 transition"
+                className="group flex items-start gap-3 p-4 rounded-xl bg-white border border-gray-100 hover:border-[#7877C6]/30 transition"
               >
-                <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <button
-                    onClick={() => handleToggleTask(task.id, task.status)}
-                    className={`transition cursor-pointer shrink-0 ${task.status === "done"
-                        ? "text-emerald-500 hover:text-gray-400"
-                        : "text-gray-300 hover:text-[#7877C6]"
-                      }`}
-                  >
-                    {task.status === "done" ? (
-                      <CheckCircle2 size={22} strokeWidth={2.5} />
-                    ) : (
-                      <Circle size={22} strokeWidth={2} />
-                    )}
-                  </button>
-                  <p className={`text-sm font-medium truncate ${task.status === "done" ? "text-gray-500 line-through" : "text-gray-800"
-                    }`}>
-                    {task.title}
-                  </p>
-                  {task.visibility === "private" && (
-                    <Lock size={12} className="text-amber-400 shrink-0" />
+                {/* Toggle button */}
+                <button
+                  onClick={() => handleToggleTask(task.id, task.status)}
+                  className={`mt-0.5 transition cursor-pointer shrink-0 ${task.status === "done"
+                    ? "text-emerald-500 hover:text-gray-400"
+                    : "text-gray-300 hover:text-[#7877C6]"
+                    }`}
+                >
+                  {task.status === "done" ? (
+                    <CheckCircle2 size={20} strokeWidth={2.5} />
+                  ) : (
+                    <Circle size={20} strokeWidth={2} />
                   )}
-                </div>
+                </button>
 
-                <div className="flex items-center gap-4 shrink-0">
-                  {task.assignee && (
-                    <div className={`flex items-center gap-2 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-100 ${task.status === "done" ? "grayscale opacity-70" : ""
+                {/* Content — stacks vertically */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-1.5">
+                    <p className={`text-sm font-medium break-words ${task.status === "done" ? "text-gray-400 line-through" : "text-gray-800"
                       }`}>
-                      <div className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 ${task.status === "done" ? "bg-gray-200" : "bg-[#7877C6]/10"
+                      {task.title}
+                    </p>
+                    {task.visibility === "private" && (
+                      <Lock size={11} className="text-amber-400 shrink-0 mt-1" />
+                    )}
+                  </div>
+
+                  {/* Assignee pill — below title */}
+                  {task.assignee && (
+                    <div className={`mt-1.5 inline-flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 ${task.status === "done" ? "opacity-50" : ""
+                      }`}>
+                      <div className={`h-4 w-4 rounded-full flex items-center justify-center shrink-0 ${task.status === "done" ? "bg-gray-200" : "bg-[#7877C6]/10"
                         }`}>
-                        <span className={`text-[10px] font-bold ${task.status === "done" ? "text-gray-500" : "text-[#7877C6]"
+                        <span className={`text-[9px] font-bold ${task.status === "done" ? "text-gray-500" : "text-[#7877C6]"
                           }`}>
                           {task.assignee.charAt(0).toUpperCase()}
                         </span>
                       </div>
-                      <span className="text-xs font-medium text-gray-600 max-w-[100px] truncate">
-                        {task.assignee}
-                      </span>
+                      <span className="text-xs font-medium text-gray-600">{task.assignee}</span>
                     </div>
                   )}
-                  <button
-                    onClick={() => handleDeleteTask(task.id)}
-                    className="opacity-0 group-hover:opacity-100 p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition cursor-pointer"
-                  >
-                    <Trash2 size={16} />
-                  </button>
                 </div>
+
+                {/* Delete — always visible on mobile, hover on desktop */}
+                <button
+                  onClick={() => handleDeleteTask(task.id)}
+                  className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition cursor-pointer shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                >
+                  <Trash2 size={15} />
+                </button>
               </div>
             ))
           )}

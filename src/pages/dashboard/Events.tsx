@@ -35,7 +35,6 @@ import CreateEventModal, {
   type EventForm,
 } from "../../components/CreateEventModal";
 import EditEventModal from "../../components/EditEventModal";
-import { randomEventImage } from "../../constants/eventImages";
 
 type Tab = "All" | "Mine";
 
@@ -68,6 +67,7 @@ const Events: React.FC = () => {
       setLoading(false);
       return;
     }
+    setTab("All");
     const db = getFirestore(app);
     const q = query(
       collection(db, "events"),
@@ -101,10 +101,11 @@ const Events: React.FC = () => {
         fee: form.fee || null,
         dresscode: form.dresscode || null,
         description: form.description || null,
-        imageUrl: randomEventImage(),
+        imageUrl: form.imageURL,
         orgId: activeOrg.id,
         createdBy: currentUser.uid,
         createdAt: serverTimestamp(),
+
       });
       setShowModal(false);
     } catch (err) {
@@ -235,7 +236,7 @@ const Events: React.FC = () => {
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           {/* Tabs */}
-          <div className="flex gap-4 border-b border-gray-100 shrink-0 w-fit" style={{ scrollbarWidth: "none" }}>
+          {/* <div className="flex gap-4 border-b border-gray-100 shrink-0 w-fit" style={{ scrollbarWidth: "none" }}>
             {(["All", "Mine"] as Tab[]).map((t) => (
               <button
                 key={t}
@@ -256,7 +257,7 @@ const Events: React.FC = () => {
                 </span>
               </button>
             ))}
-          </div>
+          </div> */}
           <div className="w-full flex flex-row items-center gap-3 justify-between">
             {/* Search */}
             <div className="relative flex-1 max-w-xs">

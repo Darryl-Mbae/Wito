@@ -7,7 +7,6 @@ import Website from "./pages/Website";
 import NotFound from "./pages/NotFound";
 
 // Dashboard pages
-import DashboardHome from "./pages/dashboard/DashboardHome";
 import Events from "./pages/dashboard/Events";
 import Directors from "./pages/dashboard/Directors";
 import Settings from "./pages/dashboard/Settings";
@@ -48,9 +47,8 @@ export default function AppRouter() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<DashboardHome />} />
+        <Route index element={<CalendarPage />} />
         <Route path="events/:eventId" element={<EventDetail />} />
-        <Route path="calendar" element={<CalendarPage />} />
         <Route path="events" element={<Events />} />
         <Route path="design" element={<DesignsPage />} />
         <Route path='notifications' element={<NotificationsPage />} />

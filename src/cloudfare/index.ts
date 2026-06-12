@@ -1,15 +1,15 @@
-import puppeteer from "@cloudflare/puppeteer";
+/// <reference types="@cloudflare/workers-types" />
 
-// ─── Env ──────────────────────────────────────────────────────────────────────
+import puppeteer from "@cloudflare/puppeteer";
 
 export interface Env {
     MAILTRAP_API_KEY: string;
     SENDER_EMAIL: string;
     SENDER_NAME: string;
-    BROWSER: any; // Cloudflare Browser Rendering binding
+    BROWSER: any;
+    FLYER_BUCKET: R2Bucket;
+    R2_PUBLIC_URL: string;
 }
-
-// ─── CORS ─────────────────────────────────────────────────────────────────────
 
 const CORS: Record<string, string> = {
     "Access-Control-Allow-Origin": "*",
@@ -28,7 +28,7 @@ function errRes(message: string, status = 500): Response {
     return jsonRes({ error: message }, status);
 }
 
-// ─── /email (POST) ────────────────────────────────────────────────────────────
+// ─── /email ───────────────────────────────────────────────────────────────────
 
 async function handleEmail(request: Request, env: Env): Promise<Response> {
     const { recipientEmail, templateUuid, variables } = await request.json() as any;
@@ -54,8 +54,40 @@ async function handleEmail(request: Request, env: Env): Promise<Response> {
     });
 }
 
-// ─── /screenshot (POST) ───────────────────────────────────────────────────────
-// Explicit ad-hoc screenshots if needed by other components
+// ─── /upload ──────────────────────────────────────────────────────────────────
+
+async function handleUpload(request: Request, env: Env): Promise<Response> {
+    const formData = await request.formData();
+    const file = formData.get("file") as File | null;
+    const folder = (formData.get("folder") as string) ?? "uploads";
+
+    if (!file) return errRes("No file provided", 400);
+
+    // Validate it's an image
+    if (!file.type.startsWith("image/")) {
+        return errRes("Only image files are allowed", 400);
+    }
+
+    // Max 10MB
+    if (file.size > 10 * 1024 * 1024) {
+        return errRes("File too large (max 10MB)", 400);
+    }
+
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const key = `${folder}/${crypto.randomUUID()}.${ext}`;
+
+    const bytes = await file.arrayBuffer();
+
+    await env.FLYER_BUCKET.put(key, bytes, {
+        httpMetadata: { contentType: file.type },
+    });
+
+    const publicUrl = `${env.R2_PUBLIC_URL}/${key}`;
+
+    return jsonRes({ url: publicUrl });
+}
+
+// ─── /screenshot ──────────────────────────────────────────────────────────────
 
 async function handleScreenshot(request: Request, env: Env): Promise<Response> {
     const { html, width, height } = await request.json() as {
@@ -82,85 +114,103 @@ async function handleScreenshot(request: Request, env: Env): Promise<Response> {
             omitBackground: false,
         });
 
-        return new Response(new Uint8Array(screenshot), {
+        return new Response((new Uint8Array(screenshot)).buffer as ArrayBuffer, {
             status: 200,
-            headers: {
-                ...CORS,
-                "Content-Type": "image/png",
-            },
+            headers: { ...CORS, "Content-Type": "image/png" },
         });
     } catch (e: any) {
-        console.error("Screenshot error:", e);
         return errRes(e?.message ?? "Screenshot failed");
     } finally {
         if (browser) await browser.close();
     }
 }
 
-// ─── /flyer-preview (GET) ─────────────────────────────────────────────────────
-// Invoked natively by <img> tags. Fetches from Firestore, renders, and caches.
+// ─── /flyer-preview ───────────────────────────────────────────────────────────
 
 async function handleFlyerPreview(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const orgId = url.searchParams.get("orgId");
     const flyerId = url.searchParams.get("flyerId");
 
-    if (!orgId || !flyerId) {
-        return errRes("Missing required parameters: orgId, flyerId", 400);
-    }
+    if (!orgId || !flyerId) return errRes("Missing orgId or flyerId", 400);
 
-    // 1. Fetch document directly via Firebase REST API
-    // TODO: Replace 'YOUR_FIREBASE_PROJECT_ID' with your real project ID string
-    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/rada-b60ad/databases/(default)/documents/organizations/${orgId}/flyers/${flyerId}`;
+    const BASE = `https://firestore.googleapis.com/v1/projects/rada-b60ad/databases/(default)/documents`;
 
-    const docResponse = await fetch(firestoreUrl);
-    if (!docResponse.ok) {
-        return errRes(`Flyer data not found in database: ${docResponse.statusText}`, 404);
-    }
-
-    const docData = await docResponse.json() as any;
-
-    // Parse out fields from Firestore's nested string/integer format
-    const html = docData.fields?.compiledHtml?.stringValue;
-    const width = parseInt(docData.fields?.width?.integerValue ?? "800", 10);
-    const height = parseInt(docData.fields?.height?.integerValue ?? "1000", 10);
-
-    if (!html) {
-        return errRes("Flyer config is missing compiled HTML structure data", 400);
-    }
-
-    let browser = null;
-    try {
-        browser = await puppeteer.launch(env.BROWSER);
-        const page = await browser.newPage();
-        await page.setViewport({ width, height, deviceScaleFactor: 1 });
-
-        // Render raw markup string and wait for resource completion
-        await page.setContent(html, { waitUntil: "networkidle0" });
-        await page.evaluateHandle("document.fonts.ready");
-
-        const screenshot = await page.screenshot({
-            type: "png",
-            clip: { x: 0, y: 0, width, height },
-            omitBackground: false,
-        });
-
-        return new Response(new Uint8Array(screenshot), {
+    const r2Key = `${orgId}/${flyerId}.png`;
+    const cached = await env.FLYER_BUCKET.get(r2Key);
+    if (cached) {
+        return new Response(cached.body, {
             status: 200,
             headers: {
                 ...CORS,
                 "Content-Type": "image/png",
-                // Instruct Cloudflare to save this image context on its global edge cache
-                // Max age is set to 7 days (604800 seconds) since flyer designs rarely change
-                "Cache-Control": "public, max-age=604800, s-maxage=604800, immutable",
+                "Cache-Control": "public, max-age=604800",
             },
         });
+    }
+
+    const flyerRes = await fetch(`${BASE}/organizations/${orgId}/flyers/${flyerId}`);
+    if (!flyerRes.ok) {
+        const body = await flyerRes.text();
+        return errRes(`Firestore fetch failed ${flyerRes.status}: ${body}`, 404);
+    }
+
+    const flyerDoc = await flyerRes.json() as any;
+    const f = flyerDoc.fields ?? {};
+
+    const html = f.compiledHtml?.stringValue;
+    const width = parseInt(f.width?.integerValue ?? "1080", 10);
+    const height = parseInt(f.height?.integerValue ?? "1080", 10);
+
+    if (!html) {
+        return errRes(`compiledHtml missing. Fields found: ${Object.keys(f).join(", ")}`, 400);
+    }
+
+    let browser = null;
+    let pngBytes: Uint8Array;
+    try {
+        browser = await puppeteer.launch(env.BROWSER);
+        const page = await browser.newPage();
+        await page.setViewport({ width, height, deviceScaleFactor: 1 });
+        await page.setContent(html, { waitUntil: "networkidle0" });
+        await page.evaluateHandle("document.fonts.ready");
+        const buf = await page.screenshot({
+            type: "png",
+            clip: { x: 0, y: 0, width, height },
+            omitBackground: false,
+        });
+        pngBytes = new Uint8Array(buf);
     } catch (e: any) {
-        console.error("Dynamic preview generation error:", e);
-        return errRes(e?.message ?? "Dynamic preview generation failed");
+        return errRes(e?.message ?? "Screenshot failed");
     } finally {
         if (browser) await browser.close();
     }
+
+    await env.FLYER_BUCKET.put(r2Key, pngBytes.buffer as ArrayBuffer, {
+        httpMetadata: { contentType: "image/png" },
+    });
+
+    const publicUrl = `${env.R2_PUBLIC_URL}/${r2Key}`;
+
+    await fetch(
+        `${BASE}/organizations/${orgId}/flyers/${flyerId}?updateMask.fieldPaths=previewUrl`,
+        {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                fields: { previewUrl: { stringValue: publicUrl } },
+            }),
+        }
+    ).catch(() => {/* non-fatal */ });
+
+    return new Response(pngBytes.buffer as ArrayBuffer, {
+        status: 200,
+        headers: {
+            ...CORS,
+            "Content-Type": "image/png",
+            "Cache-Control": "public, max-age=604800",
+        },
+    });
 }
 
 // ─── Router ───────────────────────────────────────────────────────────────────
@@ -175,19 +225,12 @@ export default {
         const pathname = url.pathname.replace(/\/$/, "");
 
         try {
-            if (pathname === "/email" && request.method === "POST") {
-                return await handleEmail(request, env);
-            }
-            if (pathname === "/screenshot" && request.method === "POST") {
-                return await handleScreenshot(request, env);
-            }
-            if (pathname === "/flyer-preview" && request.method === "GET") {
-                return await handleFlyerPreview(request, env);
-            }
-
+            if (pathname === "/email" && request.method === "POST") return await handleEmail(request, env);
+            if (pathname === "/upload" && request.method === "POST") return await handleUpload(request, env);
+            if (pathname === "/screenshot" && request.method === "POST") return await handleScreenshot(request, env);
+            if (pathname === "/flyer-preview" && request.method === "GET") return await handleFlyerPreview(request, env);
             return errRes("Not found", 404);
         } catch (e: any) {
-            console.error("Worker root level error:", e);
             return errRes(e?.message ?? "Internal server error");
         }
     },

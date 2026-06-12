@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { X, Plus, Loader2, Check, Video, } from "lucide-react";
+import { X, Plus, Loader2, Check, Video, ImageIcon } from "lucide-react";
 
 type EventForm = {
   name: string;
@@ -9,7 +9,7 @@ type EventForm = {
   fee: string;
   dresscode: string;
   description: string;
-  imageURL: string; // Added field
+  imageURL: string;
 };
 
 const EMPTY_FORM: EventForm = {
@@ -20,13 +20,16 @@ const EMPTY_FORM: EventForm = {
   fee: "",
   dresscode: "",
   description: "",
-  imageURL: "", // Added field
+  imageURL: "",
 };
 
 const isVirtualLink = (loc: string) =>
   loc?.startsWith("http://") || loc?.startsWith("https://");
 
 export type { EventForm };
+
+// ← point this at your Cloudflare worker URL
+const WORKER_URL = import.meta.env.VITE_WORKER_URL as string;
 
 interface Props {
   onClose: () => void;
@@ -40,12 +43,13 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving }) => {
     fee: false,
     dresscode: false,
     description: false,
-    imageURL: false, // Added dynamic toggle state
+    imageURL: false,
   });
 
-  // Local state for the uploaded file and its preview URL
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const set = (field: keyof EventForm) =>
@@ -55,36 +59,68 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving }) => {
   const toggle = (field: keyof typeof toggles) => {
     setToggles((t) => {
       const nextState = { ...t, [field]: !t[field] };
-      // Clean up file uploads if they uncheck the feature option
       if (field === "imageURL" && !nextState.imageURL) {
         setSelectedFile(null);
+        setUploadError("");
         if (previewUrl) URL.revokeObjectURL(previewUrl);
         setPreviewUrl("");
+        setForm((f) => ({ ...f, imageURL: "" }));
       }
       return nextState;
     });
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      // Generate a temporary browser URL to showcase the image preview safely
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
+    if (!file) return;
+
+    setSelectedFile(file);
+    setUploadError("");
+
+    // Show local preview immediately
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(URL.createObjectURL(file));
+
+    // Upload to R2 via worker
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "events");
+
+      const res = await fetch(`${WORKER_URL}/upload`, {
+        method: "POST",
+        body: fd,
+      });
+
+      if (!res.ok) {
+        const err = await res.json() as { error: string };
+        throw new Error(err.error ?? "Upload failed");
+      }
+
+      const { url } = await res.json() as { url: string };
+      setForm((f) => ({ ...f, imageURL: url }));
+    } catch (err: any) {
+      setUploadError(err.message ?? "Upload failed");
+      setSelectedFile(null);
+      setPreviewUrl("");
+      setForm((f) => ({ ...f, imageURL: "" }));
+    } finally {
+      setUploading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.date || !form.time || !form.location) return;
+    if (toggles.imageURL && uploading) return; // wait for upload
 
     await onSubmit({
       ...form,
       fee: toggles.fee ? form.fee : "",
       dresscode: toggles.dresscode ? form.dresscode : "",
       description: toggles.description ? form.description : "",
-      imageURL: "", // Kept as empty string for now per your instruction
+      imageURL: toggles.imageURL ? form.imageURL : "",
     });
   };
 
@@ -95,10 +131,7 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto">
 
         {/* Header */}
@@ -136,30 +169,18 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving }) => {
           </div>
 
           {/* Date + Time */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid lg:grid-cols-2 grid-cols-1 gap-3">
             <div>
               <label className={labelCls}>
                 Date <span className="text-red-400">*</span>
               </label>
-              <input
-                type="date"
-                value={form.date}
-                onChange={set("date")}
-                className={inputCls}
-                required
-              />
+              <input type="date" value={form.date} onChange={set("date")} className={inputCls} required />
             </div>
             <div>
               <label className={labelCls}>
                 Time <span className="text-red-400">*</span>
               </label>
-              <input
-                type="time"
-                value={form.time}
-                onChange={set("time")}
-                className={inputCls}
-                required
-              />
+              <input type="time" value={form.time} onChange={set("time")} className={inputCls} required />
             </div>
           </div>
 
@@ -187,7 +208,7 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving }) => {
           <div className="space-y-3 pt-2 border-t border-gray-100">
             <p className="text-sm font-medium text-gray-700">Optional details</p>
 
-            {/* Event Poster Upload Option */}
+            {/* Event Poster */}
             <div>
               <button
                 type="button"
@@ -201,7 +222,7 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving }) => {
               </button>
 
               {toggles.imageURL && (
-                <div className="mt-2">
+                <div className="mt-2 space-y-2">
                   <input
                     type="file"
                     ref={fileInputRef}
@@ -210,22 +231,45 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving }) => {
                     className="hidden"
                   />
 
+                  {/* Preview */}
+                  {/* {previewUrl && (
+                    <div className="relative w-full h-36 rounded-[8px] overflow-hidden border border-gray-200 bg-gray-50">
+                      <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                      {uploading && (
+                        <div className="absolute inset-0 bg-white/70 flex items-center justify-center gap-2">
+                          <Loader2 size={16} className="animate-spin text-[#7877C6]" />
+                          <span className="text-xs font-medium text-[#7877C6]">Uploading…</span>
+                        </div>
+                      )}
+                      {!uploading && form.imageURL && (
+                        <div className="absolute bottom-2 right-2 bg-emerald-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Check size={9} /> Uploaded
+                        </div>
+                      )}
+                    </div>
+                  )} */}
+
+                  {/* Upload button */}
                   <div className="flex items-center justify-between px-3 py-2 border border-gray-200 rounded-[8px] bg-white/60">
-
-                    {/* File name OR placeholder */}
-                    <span className="text-sm text-gray-700 truncate max-w-[70%]">
-                      {selectedFile ? selectedFile.name : "No file selected"}
-                    </span>
-
-                    {/* Action button */}
+                    <div className="flex items-center gap-2 min-w-0">
+                      <ImageIcon size={14} className="text-gray-400 shrink-0" />
+                      <span className="text-sm text-gray-600 truncate">
+                        {selectedFile ? selectedFile.name : "No file selected"}
+                      </span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="text-sm font-medium text-[#7877C6] hover:underline"
+                      disabled={uploading}
+                      className="text-sm font-medium text-[#7877C6] hover:underline disabled:opacity-50 shrink-0 ml-2"
                     >
                       {selectedFile ? "Change" : "Upload"}
                     </button>
                   </div>
+
+                  {uploadError && (
+                    <p className="text-xs text-red-500">{uploadError}</p>
+                  )}
                 </div>
               )}
             </div>
@@ -243,13 +287,7 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving }) => {
                 Entry fee
               </button>
               {toggles.fee && (
-                <input
-                  type="text"
-                  value={form.fee}
-                  onChange={set("fee")}
-                  placeholder="KES 500 / Free"
-                  className={`${inputCls} mt-2`}
-                />
+                <input type="text" value={form.fee} onChange={set("fee")} placeholder="KES 500 / Free" className={`${inputCls} mt-2`} />
               )}
             </div>
 
@@ -266,13 +304,7 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving }) => {
                 Dress code
               </button>
               {toggles.dresscode && (
-                <input
-                  type="text"
-                  value={form.dresscode}
-                  onChange={set("dresscode")}
-                  placeholder="Smart Casual"
-                  className={`${inputCls} mt-2`}
-                />
+                <input type="text" value={form.dresscode} onChange={set("dresscode")} placeholder="Smart Casual" className={`${inputCls} mt-2`} />
               )}
             </div>
 
@@ -311,11 +343,11 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving }) => {
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || uploading}
               className="flex-1 flex items-center justify-center gap-2 rounded-[8px] bg-[#7877C6] py-2.5 text-sm font-medium text-white hover:bg-[#7877C6]/90 transition disabled:opacity-60 cursor-pointer"
             >
-              {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-              {saving ? "Creating..." : "Create event"}
+              {saving ? <Loader2 size={15} className="animate-spin" /> : uploading ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+              {saving ? "Creating..." : uploading ? "Uploading image..." : "Create event"}
             </button>
           </div>
         </form>

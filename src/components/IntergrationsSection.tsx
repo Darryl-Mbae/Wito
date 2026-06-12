@@ -27,8 +27,8 @@ const IntegrationCard: React.FC<{ integration: Integration; onToggle: () => void
     const needsPremium = !integration.alwaysOn;
 
     return (
-        <PremiumFeature 
-            isPremium={!isPremium && needsPremium} 
+        <PremiumFeature
+            isPremium={!isPremium && needsPremium}
             description={`Connecting to ${integration.name} requires a Premium plan.`}
             className="w-full"
         >
@@ -44,7 +44,7 @@ const IntegrationCard: React.FC<{ integration: Integration; onToggle: () => void
                     <div className="flex items-center gap-2 mb-0.5">
                         <p className="text-xs font-semibold text-gray-900">{integration.name}</p>
                     </div>
-                    <p className="text-[11px] text-gray-400 leading-relaxed">{integration.description}</p>
+                    <p className="text-[11px] text-gray-900 leading-relaxed">{integration.description}</p>
                 </div>
                 <div className="absolute top-3 right-3 ">
                     {integration.alwaysOn ? (
@@ -76,12 +76,6 @@ const IntegrationCard: React.FC<{ integration: Integration; onToggle: () => void
 const IntegrationsSection: React.FC<Props> = ({ integrations, onToggle, plan = "free" }) => {
     return (
         <div>
-            <div className="mb-4">
-                <h2 className="text-sm font-semibold text-gray-900">Integrations</h2>
-                <p className="text-[11px] text-gray-400 mt-0.5">
-                    Connected integrations unlock additional template creation methods.
-                </p>
-            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {integrations.map((integration) => (
                     <IntegrationCard

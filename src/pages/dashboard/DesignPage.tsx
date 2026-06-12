@@ -209,7 +209,6 @@ const DesignPage: React.FC = () => {
                 <div className="flex items-start justify-between shrink-0">
                     <div>
                         <h1 className="text-xl font-semibold text-gray-900">Design</h1>
-                        <p className="text-sm text-gray-500 mt-1">Build flyer templates and generate social posts from your events.</p>
                     </div>
                     {paidConnected > 0 && (
                         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100">
@@ -222,17 +221,31 @@ const DesignPage: React.FC = () => {
                 </div>
             )}
 
-            {/* ── Tabs ── */}
             {!showEditor && (
-                <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit shrink-0">
+                <div
+                    className="flex gap-5 border-b border-gray-100 shrink-0 w-fit"
+                    style={{ scrollbarWidth: "none" }}
+                >
                     {TABS.map((tab) => (
-                        <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer
-                                ${activeTab === tab.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`flex items-center gap-2 pb-2.5 text-sm font-medium border-b-2 -mb-px transition cursor-pointer whitespace-nowrap
+                ${activeTab === tab.id
+                                    ? "border-[#7877C6] text-[#7877C6]"
+                                    : "border-transparent text-gray-500 hover:text-gray-900"
+                                }`}
                         >
                             {tab.label}
+
                             {tab.id === "flyers" && flyers.length > 0 && (
-                                <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600 text-[10px] font-bold">
+                                <span
+                                    className={`text-xs h-5 w-5 flex justify-center items-center rounded-full
+                        ${activeTab === tab.id
+                                            ? "bg-[#7877C6] text-white"
+                                            : "bg-gray-100 text-gray-400"
+                                        }`}
+                                >
                                     {flyers.length}
                                 </span>
                             )}

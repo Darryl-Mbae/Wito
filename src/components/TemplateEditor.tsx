@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { ArrowLeft, Code2, Palette, Zap, Eye, Save, ChevronDown, Check, Braces, AlertCircle } from "lucide-react";
 import type { Integration } from "./IntergrationsSection";
+import Editor from "@monaco-editor/react";
 
 export type TemplateMethod = "html" | "canva" | "placid";
 export type TemplateVariable = { key: string; label: string; };
@@ -26,28 +27,23 @@ const METHOD_META: Record<TemplateMethod, { label: string; icon: React.ReactNode
     placid: { label: "Placid", icon: <Zap size={12} /> },
 };
 
-type LayoutPreset = {
-    id: string; label: string;
-    width: number; height: number;
-    html: string;
-    sampleJson: string;
-};
+// export type LayoutPreset = {
+//     id: string; label: string;
+//     width: number; height: number;
+//     html: string;
+//     sampleJson: string;
+// };
 
-// All presets are complete <!DOCTYPE html> documents.
-// window.__data__ is injected by the editor before the page renders,
-// so templates can read it from any <script> tag.
-export const LAYOUT_PRESETS: LayoutPreset[] = [
-    {
-        id: "ig-post", label: "Instagram Post", width: 1080, height: 1080,
-        sampleJson: JSON.stringify({ event_name: "Annual Gala", date: "July 12, 2025", time: "7:00 PM", location: "Nairobi Serena Hotel" }, null, 2),
-        html: `<!DOCTYPE html>
+
+
+const IG_PORTRAIT_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
-    html, body { width:1080px; height:1080px; overflow:hidden; font-family:'Inter',sans-serif; }
+    html, body { width:1080px; height:1350px; overflow:hidden; font-family:'Inter',sans-serif; }
     body {
       background: linear-gradient(135deg,#7877C6 0%,#a5a4e0 100%);
       display:flex; flex-direction:column;
@@ -72,104 +68,9 @@ export const LAYOUT_PRESETS: LayoutPreset[] = [
     document.getElementById('location').textContent = d.location || '';
   </script>
 </body>
-</html>`,
-    },
-    {
-        id: "ig-story", label: "Instagram Story", width: 1080, height: 1920,
-        sampleJson: JSON.stringify({ event_name: "Annual Gala", date: "July 12, 2025", tagline: "An evening to remember" }, null, 2),
-        html: `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    html, body { width:1080px; height:1920px; overflow:hidden; font-family:'Inter',sans-serif; }
-    body {
-      background: linear-gradient(180deg,#1a1a2e 0%,#7877C6 60%,#f7c59f 100%);
-      display:flex; flex-direction:column;
-      align-items:center; justify-content:flex-end;
-      color:white; padding:80px 48px; text-align:center;
-    }
-    .tagline { font-size:12px; letter-spacing:.2em; text-transform:uppercase; opacity:.6; margin:0 0 24px; }
-    h1 { font-size:52px; font-weight:800; margin:0 0 24px; line-height:1.05; }
-    .divider { width:40px; height:2px; background:rgba(255,255,255,.4); margin:0 0 24px; }
-    .date { font-size:16px; opacity:.75; }
-  </style>
-</head>
-<body>
-  <p class="tagline" id="tagline"></p>
-  <h1 id="event_name"></h1>
-  <div class="divider"></div>
-  <p class="date" id="date"></p>
-  <script>
-    var d = window.__data__ || {};
-    document.getElementById('tagline').textContent = d.tagline || '';
-    document.getElementById('event_name').textContent = d.event_name || '';
-    document.getElementById('date').textContent = d.date || '';
-  </script>
-</body>
-</html>`,
-    },
-    {
-        id: "flyer-a4", label: "A4 Flyer", width: 794, height: 1123,
-        sampleJson: JSON.stringify({ event_name: "Annual Gala", date: "July 12, 2025", time: "7:00 PM", location: "Nairobi Serena Hotel", description: "Join us for an evening of networking and celebration." }, null, 2),
-        html: `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    html, body { width:794px; height:1123px; overflow:hidden; font-family:'Inter',sans-serif; color:#1a1a1a; }
-    body { background:#fafafa; display:flex; flex-direction:column; }
-    .header { background:linear-gradient(135deg,#7877C6,#a5a4e0); padding:64px 56px 56px; color:white; }
-    .header .label { font-size:10px; letter-spacing:.2em; text-transform:uppercase; opacity:.7; margin:0 0 20px; }
-    .header h1 { font-size:40px; font-weight:800; line-height:1.1; }
-    .body { padding:40px 56px; flex:1; display:flex; flex-direction:column; gap:24px; }
-    .field-label { font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:#7877C6; margin:0 0 6px; }
-    .field-value { font-size:18px; font-weight:600; }
-    .field-sub { font-size:14px; color:#666; margin:4px 0 0; }
-    .description { border-top:1px solid #eee; padding-top:24px; font-size:13px; color:#555; line-height:1.7; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <p class="label">Event</p>
-    <h1 id="event_name"></h1>
-  </div>
-  <div class="body">
-    <div>
-      <p class="field-label">When</p>
-      <p class="field-value" id="date"></p>
-      <p class="field-sub" id="time"></p>
-    </div>
-    <div>
-      <p class="field-label">Where</p>
-      <p class="field-value" id="location"></p>
-    </div>
-    <p class="description" id="description"></p>
-  </div>
-  <script>
-    var d = window.__data__ || {};
-    document.getElementById('event_name').textContent = d.event_name || '';
-    document.getElementById('date').textContent = d.date || '';
-    document.getElementById('time').textContent = d.time || '';
-    document.getElementById('location').textContent = d.location || '';
-    document.getElementById('description').textContent = d.description || '';
-  </script>
-</body>
-</html>`,
-    },
-    {
-        id: "calendar-a4", label: "Event Calendar (A4)", width: 794, height: 1123,
-        sampleJson: JSON.stringify([
-            { name: "Annual Gala", date: "July 12", time: "7:00 PM", location: "Serena Hotel" },
-            { name: "Tech Summit", date: "Aug 3", time: "9:00 AM", location: "iHub Nairobi" },
-            { name: "Art Exhibition", date: "Aug 17", time: "2:00 PM", location: "GoDown Arts" },
-            { name: "Fundraiser Dinner", date: "Sept 5", time: "6:30 PM", location: "Sankara Hotel" },
-        ], null, 2),
-        html: `<!DOCTYPE html>
+</html>`;
+
+const CALENDAR_A4_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -212,10 +113,78 @@ export const LAYOUT_PRESETS: LayoutPreset[] = [
     });
   </script>
 </body>
-</html>`,
+</html>`;
+
+
+const IG_STORY_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:1080px; height:1920px; overflow:hidden; font-family:'Inter',sans-serif; }
+    body {
+      background: linear-gradient(180deg,#1a1a2e 0%,#7877C6 60%,#f7c59f 100%);
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:flex-end;
+      color:white; padding:80px 48px; text-align:center;
+    }
+    .tagline { font-size:12px; letter-spacing:.2em; text-transform:uppercase; opacity:.6; margin:0 0 24px; }
+    h1 { font-size:52px; font-weight:800; margin:0 0 24px; line-height:1.05; }
+    .divider { width:40px; height:2px; background:rgba(255,255,255,.4); margin:0 0 24px; }
+    .date { font-size:16px; opacity:.75; }
+  </style>
+</head>
+<body>
+  <p class="tagline" id="tagline"></p>
+  <h1 id="event_name"></h1>
+  <div class="divider"></div>
+  <p class="date" id="date"></p>
+  <script>
+    var d = window.__data__ || {};
+    document.getElementById('tagline').textContent = d.tagline || '';
+    document.getElementById('event_name').textContent = d.event_name || '';
+    document.getElementById('date').textContent = d.date || '';
+  </script>
+</body>
+</html>`;
+
+
+
+export const LAYOUT_PRESETS = [
+
+    {
+        id: "ig-portrait",
+        label: "Instagram Post (Portrait)",
+        width: 1080,
+        height: 1350,
+        sampleJson: JSON.stringify({ event_name: "Annual Gala", date: "July 12, 2025", time: "7:00 PM", location: "Nairobi Serena Hotel" }, null, 2),
+        html: IG_PORTRAIT_HTML,
+    },
+    {
+        id: "ig-story",
+        label: "Instagram Story",
+        width: 1080,
+        height: 1920,
+        sampleJson: JSON.stringify({ event_name: "Annual Gala", date: "July 12, 2025", time: "7:00 PM", location: "Nairobi Serena Hotel", description: "Join us for an evening of networking and celebration." }, null, 2),
+        html: IG_STORY_HTML,
+    },
+
+    {
+        id: "calendar-a4",
+        label: "Event Calendar (A4)",
+        width: 794,
+        height: 1123,
+        sampleJson: JSON.stringify([
+            { name: "Annual Gala", date: "July 12", time: "7:00 PM", location: "Serena Hotel" },
+            { name: "Tech Summit", date: "Aug 3", time: "9:00 AM", location: "iHub Nairobi" },
+            { name: "Art Exhibition", date: "Aug 17", time: "2:00 PM", location: "GoDown Arts" },
+            { name: "Fundraiser Dinner", date: "Sept 5", time: "6:30 PM", location: "Sankara Hotel" },
+        ], null, 2),
+        html: CALENDAR_A4_HTML,
     },
 ];
-
 // ─── Parse JSON ───────────────────────────────────────────────────────────────
 
 type ParseResult =
@@ -259,25 +228,43 @@ type DataPanelProps = {
     onChange: (v: string) => void;
 };
 
-const DataPanel: React.FC<DataPanelProps> = ({ jsonData, parseResult, textareaRef, stretch, onChange }) => (
+const DataPanel: React.FC<DataPanelProps> = ({ jsonData, parseResult, stretch, onChange }) => (
     <div className={`flex flex-col gap-3 ${stretch ? "flex-1 min-h-0 overflow-hidden" : ""}`}>
-        <div className={`flex flex-col rounded-xl border overflow-hidden transition
+        <div className={`flex flex-col  overflow-hidden transition
             ${stretch ? "flex-1 min-h-0" : ""}
             ${parseResult.kind === "error" ? "border-red-200 bg-red-50/30" : "border-gray-200 bg-white"}`}
         >
-            <textarea
-                ref={textareaRef}
-                value={jsonData}
-                onChange={(e) => onChange(e.target.value)}
-                spellCheck={false}
-                placeholder={`// Single event:\n{ "event_name": "Annual Gala", "date": "July 12" }\n\n// Multiple events on one flyer:\n[\n  { "name": "Gala", "date": "July 12", "time": "7 PM" },\n  { "name": "Summit", "date": "Aug 3", "time": "9 AM" }\n]`}
-                className={`w-full px-4 py-3 text-[11px] font-mono text-gray-700 focus:outline-none resize-none leading-relaxed bg-transparent placeholder-gray-300
-                    ${stretch ? "flex-1 min-h-0 overflow-auto" : "overflow-auto"}`}
-                style={{
-                    ...(stretch ? {} : { minHeight: "220px", maxHeight: "340px" }),
-                    scrollbarWidth: "none",
-                } as React.CSSProperties}
-            />
+            <div
+                className={`w-full pt-5 ${stretch ? "flex-1 min-h-0" : ""
+                    }`}
+                style={
+                    stretch
+                        ? undefined
+                        : { minHeight: "220px", maxHeight: "340px" }
+                }
+            >
+                <Editor
+                    language="json"
+                    value={jsonData}
+                    onChange={(value) => onChange(value || "")}
+                    theme="vs-light"
+                    height="70vh"
+                    options={{
+                        minimap: { enabled: false },
+                        fontSize: 12,
+                        tabSize: 2,
+                        wordWrap: "on",
+                        automaticLayout: true,
+                        formatOnPaste: true,
+                        formatOnType: true,
+                        scrollBeyondLastLine: false,
+                        lineNumbers: "on",
+                        folding: true,
+                        glyphMargin: false,
+                        renderLineHighlight: "line",
+                    }}
+                />
+            </div>
             {parseResult.kind === "error" && (
                 <div className="flex items-center gap-1.5 px-3 py-2 border-t border-red-100 bg-red-50/50 shrink-0">
                     <AlertCircle size={10} className="text-red-400 shrink-0" />
@@ -285,7 +272,7 @@ const DataPanel: React.FC<DataPanelProps> = ({ jsonData, parseResult, textareaRe
                 </div>
             )}
         </div>
-        <p className="text-[10px] text-gray-400 shrink-0 leading-relaxed">
+        <p className="px-5 py-3 text-[10px] text-gray-400 shrink-0 leading-relaxed">
             Available as <code className="font-mono text-[#7877C6]">window.__data__</code> in your template's <code className="font-mono text-gray-500">{"<script>"}</code>.
             Use a <code className="font-mono text-[#7877C6]">{"{ }"}</code> for single-event or <code className="font-mono text-[#7877C6]">{"[ ]"}</code> array for multi-event flyers.
         </p>
@@ -299,17 +286,37 @@ type CodePanelProps = {
     textareaRef: React.RefObject<HTMLTextAreaElement | null>;
     onChange: (v: string) => void;
 };
-
-const CodePanel: React.FC<CodePanelProps> = ({ htmlCode, textareaRef, onChange }) => (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-        <textarea
-            ref={textareaRef}
+const CodePanel: React.FC<CodePanelProps> = ({
+    htmlCode,
+    onChange,
+}) => (
+    <div className="flex-1 min-h-0 overflow-hidden">
+        <Editor
+            height="100%"
+            defaultLanguage="html"
             value={htmlCode}
-            onChange={(e) => onChange(e.target.value)}
-            className="flex-1 w-full px-4 py-3 text-[11px] font-mono text-gray-700 focus:outline-none resize-none leading-relaxed min-h-0 overflow-auto bg-transparent"
-            style={{ scrollbarWidth: "none" } as React.CSSProperties}
-            spellCheck={false}
-            placeholder={`<!DOCTYPE html>\n<html>\n<head>\n  <style>/* your styles */</style>\n</head>\n<body>\n  <!-- your layout -->\n  <script>\n    var data = window.__data__ || {};\n    // render here\n  </script>\n</body>\n</html>`}
+            onChange={(value) => onChange(value || "")}
+            theme="vs-light"
+            options={{
+                minimap: { enabled: false },
+                fontSize: 13,
+                wordWrap: "on",
+                automaticLayout: true,
+                tabSize: 2,
+                formatOnPaste: true,
+                formatOnType: true,
+                scrollBeyondLastLine: false,
+                roundedSelection: true,
+                autoClosingBrackets: "always",
+                autoClosingQuotes: "always",
+                autoIndent: "full",
+                suggestOnTriggerCharacters: true,
+                quickSuggestions: true,
+                padding: {
+                    top: 12,
+                    bottom: 12,
+                },
+            }}
         />
     </div>
 );
@@ -520,7 +527,7 @@ const TemplateEditor: React.FC<Props> = ({ onBack, onSave, connectedIntegrations
                                     </button>
                                 ))}
                             </div>
-                            <div className="flex-1 min-h-0 overflow-hidden p-3.5 flex flex-col">
+                            <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
                                 {desktopTab === "data" && <DataPanel {...dataPanelProps} stretch={true} />}
                                 {desktopTab === "code" && <CodePanel htmlCode={htmlCode} textareaRef={codeTextareaRef} onChange={setHtmlCode} />}
                             </div>
@@ -570,16 +577,33 @@ const TemplateEditor: React.FC<Props> = ({ onBack, onSave, connectedIntegrations
                                 </div>
                             )}
                             {mobileTab === "code" && (
-                                <div className="bg-white rounded-2xl border border-gray-100 flex flex-col" style={{ minHeight: "400px" }}>
+                                <div
+                                    className="bg-white rounded-2xl border border-gray-100 flex flex-col"
+                                    style={{ minHeight: "400px" }}
+                                >
                                     <div className="bg-gray-50 px-4 py-2 border-b border-gray-100 flex items-center gap-2 rounded-t-2xl shrink-0">
                                         <Code2 size={11} className="text-gray-400" />
-                                        <span className="text-[10px] text-gray-400 font-mono">template.html</span>
+                                        <span className="text-[10px] text-gray-400 font-mono">
+                                            template.html
+                                        </span>
                                     </div>
-                                    <textarea value={htmlCode} onChange={(e) => setHtmlCode(e.target.value)} ref={codeTextareaRef}
-                                        className="flex-1 w-full px-4 py-3 text-[11px] font-mono text-gray-700 focus:outline-none resize-none leading-relaxed"
-                                        style={{ minHeight: "360px", scrollbarWidth: "none" } as React.CSSProperties}
-                                        spellCheck={false}
-                                    />
+
+                                    <div className="flex-1 min-h-[360px] pt-4">
+                                        <Editor
+                                            language="html"
+                                            value={htmlCode}
+                                            onChange={(value) => setHtmlCode(value || "")}
+                                            theme="vs-light"
+                                            height="70vh"
+                                            options={{
+                                                minimap: { enabled: false },
+                                                fontSize: 13,
+                                                wordWrap: "on",
+                                                automaticLayout: true,
+                                                scrollBeyondLastLine: false,
+                                            }}
+                                        />
+                                    </div>
                                 </div>
                             )}
                             {mobileTab === "preview" && (

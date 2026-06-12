@@ -512,7 +512,7 @@ const EventPublic: React.FC = () => {
                                         type="text"
                                         value={form.clubName}
                                         onChange={setField("clubName")}
-                                        placeholder="e.g. Rotaract Club of Nairobi"
+                                        placeholder="e.g. Rotaract Club of Kitengela"
                                         className={inputCls}
                                         required
                                     />
