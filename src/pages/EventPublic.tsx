@@ -230,15 +230,15 @@ const EventPublic: React.FC = () => {
             <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4">
                 <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden max-w-sm w-full">
                     {/* Image */}
-                    {event.imageUrl && (
-                        <div className="h-44 w-full overflow-hidden">
-                            <img
-                                src={event.imageUrl}
-                                alt={event.name}
-                                className="h-full w-full object-cover"
-                            />
-                        </div>
-                    )}
+
+                    <div className="h-44 w-full overflow-hidden">
+                        <img
+                            src={event.imageUrl ? event.imageUrl : "/images/imageurl.jpg"}
+                            alt={event.name}
+                            className="h-full w-full object-cover"
+                        />
+                    </div>
+
 
                     <div className="p-6 space-y-5">
                         {/* Icon + heading */}
@@ -314,15 +314,15 @@ const EventPublic: React.FC = () => {
         <div className="min-h-screen bg-[#f8fafc] py-10 px-4">
             <div className="max-w-4xl mx-auto">
                 {/* Cover image — full width on desktop */}
-                {event.imageUrl && (
-                    <div className="h-52 md:h-64 w-full overflow-hidden rounded-2xl mb-6">
-                        <img
-                            src={event.imageUrl}
-                            alt={event.name}
-                            className="h-full w-full object-cover"
-                        />
-                    </div>
-                )}
+
+                <div className="h-52 md:h-64 w-full overflow-hidden rounded-2xl mb-6">
+                    <img
+                        src={event.imageUrl ? event.imageUrl : "/images/imageurl.jpg"}
+                        alt={event.name}
+                        className="h-full w-full object-cover"
+                    />
+                </div>
+
 
                 {/* Two-column on desktop, single on mobile */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">

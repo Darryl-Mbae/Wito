@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Plus, Trash2, CheckCircle2, Circle, Globe, Lock } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, Circle, Globe, Lock, Gem } from "lucide-react";
 import {
   getFirestore,
   collection,
@@ -15,6 +15,7 @@ import {
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import app from "../../config/firebase";
+import { PremiumFeature } from "../../components/PremiumFeature";
 import { type DashboardContextType } from "../Dashboard";
 
 type TaskStatus = "todo" | "done";
@@ -328,17 +329,27 @@ const TasksPage: React.FC = () => {
                       onClick={() => { setNewTaskVisibility("public"); setShowVisibilityDropdown(false); }}
                       className={`w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition ${newTaskVisibility === "public" ? "bg-gray-50 text-gray-900" : "text-gray-500 hover:bg-gray-50"}`}
                     >
-                      <Globe size={12} className={newTaskVisibility === "public" ? "text-[#7877C6]" : "text-gray-400"} />
+                      {/* <Globe size={12} className={newTaskVisibility === "public" ? "text-[#7877C6]" : "text-gray-400"} /> */}
                       Public
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => { setNewTaskVisibility("private"); setShowVisibilityDropdown(false); }}
-                      className={`w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition ${newTaskVisibility === "private" ? "bg-amber-50 text-amber-700" : "text-gray-500 hover:bg-gray-50"}`}
+
+                    <PremiumFeature
+                      isPremium={true}
+                      description="Create private tasks, hide them from public listings, and keep your work confidential."
+                      tooltipPosition="bottom"
                     >
-                      <Lock size={12} className={newTaskVisibility === "private" ? "text-amber-500" : "text-gray-400"} />
-                      Private
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => { setNewTaskVisibility("private"); setShowVisibilityDropdown(false); }}
+                        className={`w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition ${newTaskVisibility === "private" ? "bg-amber-50 text-amber-700" : "text-gray-500 hover:bg-gray-50"}`}
+                      >
+
+                        {/* <Lock size={12} className={newTaskVisibility === "private" ? "text-amber-500" : "text-gray-400"} /> */}
+                        <Gem size={12} className="text-[#7877C6]" />
+                        Private
+                      </button>
+                    </PremiumFeature>
+
                   </div>
                 </div>
               )}

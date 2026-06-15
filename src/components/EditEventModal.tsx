@@ -1,11 +1,14 @@
-import { useState } from "react";
-import { X, Loader2, Check, Video, Save } from "lucide-react";
+import { useState, useRef } from "react";
+import { X, Loader2, Check, Video, Save, ImageIcon } from "lucide-react";
 import { getFirestore, doc, updateDoc } from "firebase/firestore";
 import app from '../config/firebase';
 import { type Event } from "./EventCard";
 
 const isVirtualLink = (loc: string) =>
   loc?.startsWith("http://") || loc?.startsWith("https://");
+
+// ← point this at your Cloudflare worker URL
+const WORKER_URL = import.meta.env.VITE_WORKER_URL as string;
 
 interface Props {
   event: Event;
@@ -22,13 +25,21 @@ const EditEventModal: React.FC<Props> = ({ event, onClose, onSaved }) => {
     fee: event.fee || "",
     dresscode: event.dresscode || "",
     description: event.description || "",
+    imageUrl: event.imageUrl || "",
   });
 
   const [toggles, setToggles] = useState({
     fee: !!event.fee,
     dresscode: !!event.dresscode,
     description: !!event.description,
+    imageUrl: !!event.imageUrl,
   });
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>(event.imageUrl || "");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [saving, setSaving] = useState(false);
 
@@ -36,12 +47,65 @@ const EditEventModal: React.FC<Props> = ({ event, onClose, onSaved }) => {
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [field]: e.target.value }));
 
-  const toggle = (field: keyof typeof toggles) =>
-    setToggles((t) => ({ ...t, [field]: !t[field] }));
+  const toggle = (field: keyof typeof toggles) => {
+    setToggles((t) => {
+      const nextState = { ...t, [field]: !t[field] };
+      if (field === "imageUrl" && !nextState.imageUrl) {
+        setSelectedFile(null);
+        setUploadError("");
+        if (previewUrl && previewUrl !== event.imageUrl) URL.revokeObjectURL(previewUrl);
+        setPreviewUrl("");
+        setForm((f) => ({ ...f, imageUrl: "" }));
+      }
+      return nextState;
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedFile(file);
+    setUploadError("");
+
+    // Show local preview immediately
+    if (previewUrl && previewUrl !== event.imageUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(URL.createObjectURL(file));
+
+    // Upload to R2 via worker
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "events");
+
+      const res = await fetch(`${WORKER_URL}/upload`, {
+        method: "POST",
+        body: fd,
+      });
+
+      if (!res.ok) {
+        const err = await res.json() as { error: string };
+        throw new Error(err.error ?? "Upload failed");
+      }
+
+      const { url } = await res.json() as { url: string };
+      setForm((f) => ({ ...f, imageUrl: url }));
+    } catch (err: any) {
+      setUploadError(err.message ?? "Upload failed");
+      setSelectedFile(null);
+      setPreviewUrl(event.imageUrl || "");
+      setForm((f) => ({ ...f, imageUrl: event.imageUrl || "" }));
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.date || !form.time || !form.location) return;
+    if (toggles.imageUrl && uploading) return; // wait for upload
+
     setSaving(true);
     try {
       const db = getFirestore(app);
@@ -53,6 +117,7 @@ const EditEventModal: React.FC<Props> = ({ event, onClose, onSaved }) => {
         fee: toggles.fee ? form.fee || null : null,
         dresscode: toggles.dresscode ? form.dresscode || null : null,
         description: toggles.description ? form.description || null : null,
+        imageUrl: toggles.imageUrl ? form.imageUrl || null : null,
       });
       onSaved();
       onClose();
@@ -124,10 +189,69 @@ const EditEventModal: React.FC<Props> = ({ event, onClose, onSaved }) => {
             )}
           </div>
 
-
           {/* Optional toggles */}
           <div className="space-y-3 pt-2 border-t border-gray-100">
             <p className="text-sm font-medium text-gray-700">Optional details</p>
+
+            {/* Event Poster */}
+            <div>
+              <button
+                type="button"
+                onClick={() => toggle("imageUrl")}
+                className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition cursor-pointer"
+              >
+                <span className={`w-4 h-4 rounded border flex items-center justify-center transition ${toggles.imageUrl ? "bg-[#7877C6] border-[#7877C6]" : "border-gray-300"}`}>
+                  {toggles.imageUrl && <Check size={10} className="text-white" />}
+                </span>
+                Event poster
+              </button>
+
+              {toggles.imageUrl && (
+                <div className="mt-2 space-y-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+
+                  {/* Upload button row */}
+                  <div className="flex items-center justify-between px-3 py-2 border border-gray-200 rounded-[8px] bg-white/60">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <ImageIcon size={14} className="text-gray-400 shrink-0" />
+                      <span className="text-sm text-gray-600 truncate">
+                        {selectedFile
+                          ? selectedFile.name
+                          : event.imageUrl
+                            ? "Current poster"
+                            : "No file selected"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      {uploading && (
+                        <Loader2 size={13} className="animate-spin text-[#7877C6]" />
+                      )}
+                      {!uploading && form.imageUrl && (
+                        <Check size={13} className="text-emerald-500" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="text-sm font-medium text-[#7877C6] hover:underline disabled:opacity-50"
+                      >
+                        {selectedFile || event.imageUrl ? "Change" : "Upload"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {uploadError && (
+                    <p className="text-xs text-red-500">{uploadError}</p>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Fee */}
             <div>
@@ -192,11 +316,13 @@ const EditEventModal: React.FC<Props> = ({ event, onClose, onSaved }) => {
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || uploading}
               className="flex-1 flex items-center justify-center gap-2 rounded-[8px] bg-[#7877C6] py-2.5 text-sm font-medium text-white hover:bg-[#7877C6]/90 transition disabled:opacity-60 cursor-pointer"
             >
-              {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-              {saving ? "Saving..." : "Save changes"}
+              {saving || uploading
+                ? <Loader2 size={15} className="animate-spin" />
+                : <Save size={15} />}
+              {saving ? "Saving..." : uploading ? "Uploading image..." : "Save changes"}
             </button>
           </div>
         </form>

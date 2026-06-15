@@ -49,7 +49,7 @@ export const formatTime = (t: string) => {
   return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${ampm}`;
 };
 
-const DEFAULT_IMAGE = "/images/event-default.jpg";
+const DEFAULT_IMAGE = "/images/imageurl.jpg";
 
 interface Props {
   event: Event;

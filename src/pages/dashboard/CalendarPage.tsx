@@ -189,6 +189,7 @@ const EventPanel: React.FC<{
         });
     };
 
+
     return (
         <div className={`fixed inset-y-0 right-0 z-60 w-full sm:w-[360px] bg-white border-l border-gray-100 shadow-xl flex flex-col
             transition-transform duration-300 ease-out ${event ? "translate-x-0" : "translate-x-full"}`}
@@ -289,19 +290,22 @@ const EventPanel: React.FC<{
                         )}
 
                         {/* Share */}
-                        <div>
-                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Share</p>
-                            <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5">
-                                <Link2 size={11} className="text-gray-400 shrink-0" />
-                                <p className="text-[11px] text-gray-500 flex-1 truncate">{shareLink}</p>
-                                <button
-                                    onClick={copyLink}
-                                    className="shrink-0 flex items-center gap-1 text-[11px] font-medium text-[#7877C6] hover:text-[#6665b5] transition cursor-pointer"
-                                >
-                                    {copied ? <><Check size={10} /> Copied</> : <><Copy size={10} /> Copy</>}
-                                </button>
+
+                        {!event.isTask &&
+                            <div>
+                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Share</p>
+                                <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5">
+                                    <Link2 size={11} className="text-gray-400 shrink-0" />
+                                    <p className="text-[11px] text-gray-500 flex-1 truncate">{shareLink}</p>
+                                    <button
+                                        onClick={copyLink}
+                                        className="shrink-0 flex items-center gap-1 text-[11px] font-medium text-[#7877C6] hover:text-[#6665b5] transition cursor-pointer"
+                                    >
+                                        {copied ? <><Check size={10} /> Copied</> : <><Copy size={10} /> Copy</>}
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        }
                     </div>
 
                     {/* Footer */}

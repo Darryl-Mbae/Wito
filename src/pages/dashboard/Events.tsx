@@ -356,7 +356,7 @@ const Events: React.FC = () => {
                 {/* Selection overlay */}
                 {selectMode && (
                   <div
-                    className={`absolute inset-0 z-10 rounded-2xl border-2 transition pointer-events-none ${selected.has(event.id)
+                    className={`w-[90%] mx-auto md:w-full absolute inset-0 z-10 rounded-2xl border-2 transition pointer-events-none ${selected.has(event.id)
                       ? "border-[#7877C6] bg-[#7877C6]/5"
                       : "border-transparent"
                       }`}
