@@ -1,11 +1,18 @@
 /// <reference types="@cloudflare/workers-types" />
 
 import puppeteer from "@cloudflare/puppeteer";
+import { WorkerMailer } from "@ryyr/worker-mailer";
+import {
+    renderEmailTemplate,
+    type EmailTemplateId,
+} from "../lib/emails/html-templates";
 
 export interface Env {
     MAILTRAP_API_KEY: string;
     SENDER_EMAIL: string;
     SENDER_NAME: string;
+    GMAIL_USER: string;
+    GMAIL_APP_PASSWORD: string;
     BROWSER: any;
     FLYER_BUCKET: R2Bucket;
     R2_PUBLIC_URL: string;
@@ -28,7 +35,54 @@ function errRes(message: string, status = 500): Response {
     return jsonRes({ error: message }, status);
 }
 
-// ─── /email ───────────────────────────────────────────────────────────────────
+// ─── /send-email (Gmail SMTP via app password) ───────────────────────────────
+
+async function handleSendEmail(request: Request, env: Env): Promise<Response> {
+    const { recipientEmail, templateId, variables } = await request.json() as {
+        recipientEmail: string;
+        templateId: EmailTemplateId;
+        variables: Record<string, string>;
+    };
+
+    if (!recipientEmail || !templateId) {
+        return errRes("Missing recipientEmail or templateId", 400);
+    }
+
+    if (!env.GMAIL_USER || !env.GMAIL_APP_PASSWORD) {
+        return errRes("Gmail SMTP credentials not configured", 500);
+    }
+
+    const { html, subject } = renderEmailTemplate(templateId, variables);
+    const senderName = env.SENDER_NAME || "Wito";
+
+    let mailer: WorkerMailer | null = null;
+    try {
+        mailer = await WorkerMailer.connect({
+            host: "smtp.gmail.com",
+            port: 587,
+            secure: false,
+            startTls: true,
+            username: env.GMAIL_USER,
+            password: env.GMAIL_APP_PASSWORD,
+            authType: ["plain"],
+        });
+
+        await mailer.send({
+            from: { email: env.GMAIL_USER, name: senderName },
+            to: { email: recipientEmail },
+            subject,
+            html,
+        });
+
+        return jsonRes({ success: true, message: "Email sent" });
+    } catch (e: any) {
+        return errRes(e?.message ?? "Failed to send email");
+    } finally {
+        if (mailer) await mailer.close();
+    }
+}
+
+// ─── /email (legacy Mailtrap) ─────────────────────────────────────────────────
 
 async function handleEmail(request: Request, env: Env): Promise<Response> {
     const { recipientEmail, templateUuid, variables } = await request.json() as any;
@@ -225,6 +279,7 @@ export default {
         const pathname = url.pathname.replace(/\/$/, "");
 
         try {
+            if (pathname === "/send-email" && request.method === "POST") return await handleSendEmail(request, env);
             if (pathname === "/email" && request.method === "POST") return await handleEmail(request, env);
             if (pathname === "/upload" && request.method === "POST") return await handleUpload(request, env);
             if (pathname === "/screenshot" && request.method === "POST") return await handleScreenshot(request, env);

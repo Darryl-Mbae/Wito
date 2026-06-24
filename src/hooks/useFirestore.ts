@@ -2,22 +2,14 @@ import { useState } from "react";
 import {
   getFirestore,
   doc,
-  setDoc,
   getDoc,
-  serverTimestamp,
+  updateDoc,
   collection,
   getDocs,
-  updateDoc,
 } from "firebase/firestore";
+import type { User } from "firebase/auth";
 import app from "../config/firebase";
-import { EMAIL_TEMPLATES } from "../lib/emails/templates";
-import { useMailtrap } from "./useMailtrap";
-
-type ProfileData = {
-  email: string;
-  name?: string;
-  photoURL?: string | null;
-};
+import { ensureUserProfile } from "../lib/auth/ensureUserProfile";
 
 // ─── Resolve a pending invite token for a user ───────────────────────────────
 // Each invite entry has its own token. On accept: token is cleared (null),
@@ -87,94 +79,15 @@ export const resolveInviteToken = async (uid: string, token: string): Promise<bo
 export const useCreatUser = () => {
   const [dbError, setDbError] = useState<string | null>(null);
   const [isDbPending, setIsDbPending] = useState(false);
-  const { sendEmail } = useMailtrap();
 
-
-  const db = getFirestore(app);
-
-  const createUserProfile = async (
-    uid: string,
-    profileData: ProfileData
-  ) => {
-    if (!uid) return;
+  const createUserProfile = async (user: User) => {
+    if (!user.uid) return;
 
     setIsDbPending(true);
     setDbError(null);
 
-    const userRef = doc(db, "users", uid);
-
     try {
-      const docSnap = await getDoc(userRef);
-
-      if (!docSnap.exists()) {
-        const payload = {
-          uid,
-          name: profileData.name || "Anonymous User",
-          email: profileData.email,
-          photoURL: profileData.photoURL || null,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          role: "user",
-        };
-
-        await setDoc(userRef, payload);
-
-        console.log("Firestore profile created.");
-        // Send WELCOME email after user creation
-        try {
-          await sendEmail(
-            profileData.email,
-            EMAIL_TEMPLATES.welcomeEmail.uuid,
-            {
-              email: profileData.email,
-              company_name: "Your Platform Name", // or dynamic if you have it
-            }
-          );
-
-          console.log("Welcome email sent to:", profileData.email);
-        } catch (err) {
-          console.error("Welcome email failed:", err);
-        }
-
-        // Auto-resolve any existing invites for this email
-        try {
-          const orgsSnap = await getDocs(collection(db, "organizations"));
-          const autoOrgs: any[] = [];
-
-          for (const orgDoc of orgsSnap.docs) {
-            const orgData = orgDoc.data();
-            const invited = orgData.invitedDirectors || [];
-
-            const hasInvite = invited.some(
-              (inv: any) =>
-                inv.email === profileData.email && inv.accepted === false
-            );
-
-            if (!hasInvite) continue;
-
-            autoOrgs.push({ id: orgDoc.id, role: "director" });
-
-            const updatedInvites = invited.map((inv: any) =>
-              inv.email === profileData.email
-                ? { ...inv, accepted: true }
-                : inv
-            );
-
-            await updateDoc(doc(db, "organizations", orgDoc.id), {
-              invitedDirectors: updatedInvites,
-            });
-          }
-
-          if (autoOrgs.length > 0) {
-            await updateDoc(userRef, { organization: autoOrgs });
-            console.log(`Auto-resolved ${autoOrgs.length} invites.`);
-          }
-        } catch (inviteErr) {
-          console.error("Invite auto-resolve error:", inviteErr);
-        }
-      } else {
-        console.log("User already exists.");
-      }
+      await ensureUserProfile(user);
     } catch (err: unknown) {
       console.error("Firestore error:", err);
       setDbError("Failed to sync user profile.");

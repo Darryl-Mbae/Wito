@@ -5,7 +5,6 @@ import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     signInWithRedirect,
-    getRedirectResult,
     GoogleAuthProvider,
     signInWithPopup,
     updateProfile,
@@ -46,15 +45,12 @@ export const useSignup = () => {
                 throw new Error("User email is missing");
             }
 
-            await createUserProfile(user.uid, {
-                email: user.email,
-                name: name,
-            });
+            await createUserProfile(user);
 
             setIsPending(false);
             return user;
         } catch (err: unknown) {
-            const error = err as any;
+            const error = err as { code?: string; message?: string };
 
             if (error.code === "auth/email-already-in-use") {
                 setError("This email is already registered.");
@@ -94,7 +90,7 @@ export const useLogin = () => {
             setIsPending(false);
             return userCredential.user;
         } catch (err: unknown) {
-            const error = err as any;
+            const error = err as { code?: string };
 
             switch (error.code) {
                 case "auth/invalid-credential":
@@ -128,15 +124,14 @@ export const useLogin = () => {
     return { login, error, isPending, setError };
 };
 
-// Google Sign in
+const isMobile = () => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+// Google Sign in — profile creation handled globally by AuthProvider
 export const useGoogleAuth = () => {
     const [googleError, setGoogleError] = useState<string | null>(null);
     const [isGooglePending, setIsGooglePending] = useState(false);
 
     const auth = getAuth(app);
-    const { createUserProfile } = useCreatUser(); // ← ADD THIS
-
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     const loginWithGoogle = async () => {
         setGoogleError(null);
@@ -146,70 +141,41 @@ export const useGoogleAuth = () => {
         provider.setCustomParameters({ prompt: "select_account" });
 
         try {
-            if (isMobile) {
+            if (isMobile()) {
                 await signInWithRedirect(auth, provider);
-                // execution stops here on mobile (page redirects)
-            } else {
+                return;
+            }
+
+            try {
                 const result = await signInWithPopup(auth, provider);
-                const user = result.user;
-
-                // ← CREATE PROFILE for Google users (safe to call even if exists)
-                await createUserProfile(user.uid, {
-                    email: user.email!,
-                    name: user.displayName ?? "",
-                });
-
                 setIsGooglePending(false);
-                return user;
+                return result.user;
+            } catch (popupErr: unknown) {
+                const popupError = popupErr as { code?: string };
+                if (
+                    popupError.code === "auth/popup-blocked" ||
+                    popupError.code === "auth/popup-closed-by-user"
+                ) {
+                    await signInWithRedirect(auth, provider);
+                    return;
+                }
+                throw popupErr;
             }
         } catch (err: unknown) {
-            const error = err as any;
+            const error = err as { code?: string };
             if (error.code === "auth/popup-closed-by-user") {
                 setGoogleError("Sign-in cancelled.");
             } else if (error.code === "auth/account-exists-with-different-credential") {
                 setGoogleError("Account exists with different login method.");
             } else {
-                setGoogleError("Could not connect to Google.");
+                setGoogleError("Could not connect to Google. Try again or use email sign-in.");
             }
             setIsGooglePending(false);
         }
-    };
-
-    const handleRedirectResult = async () => {
-        // ← Don't set pending true here — only set it if a redirect actually happened
-        try {
-            const result = await getRedirectResult(auth);
-
-            if (result) {
-                setIsGooglePending(true);
-                const user = result.user;
-
-
-                // ← CREATE PROFILE for Google redirect users too
-                await createUserProfile(user.uid, {
-                    email: user.email!,
-                    name: user.displayName ?? "",
-                });
-
-                setIsGooglePending(false);
-                return user;
-            }
-        } catch (err: unknown) {
-            const error = err as any;
-            if (error.code === "auth/account-exists-with-different-credential") {
-                setGoogleError("Account exists with different login method.");
-            } else {
-                setGoogleError("Google login failed.");
-            }
-            setIsGooglePending(false);
-        }
-
-        return null;
     };
 
     return {
         loginWithGoogle,
-        handleRedirectResult,
         googleError,
         isGooglePending,
         setGoogleError,
@@ -219,12 +185,10 @@ export const useGoogleAuth = () => {
 export const getUser = () => {
     const auth = getAuth(app);
     return auth.currentUser;
-}
+};
+
 export const useLogout = () => {
     const auth = getAuth(app);
-    const logout = () => {
-        return signOut(auth);
-    };
-
+    const logout = () => signOut(auth);
     return { logout };
 };

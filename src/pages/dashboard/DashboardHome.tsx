@@ -16,7 +16,7 @@ const DashboardHome: React.FC = () => {
 
   const handleClose = () => {
     setShowModal(false);
-    navigate("/dashboard/calendar");
+    navigate("/dashboard");
   };
 
   return (

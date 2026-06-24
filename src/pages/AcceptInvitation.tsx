@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
-import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
+import { getAuth, onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { getFirestore, collection, getDocs } from "firebase/firestore";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import app from "../config/firebase";
@@ -52,6 +52,7 @@ export default function AcceptInvitation() {
             }
 
             const orgData = orgDoc.data();
+            console.log(orgData);
             setOrgName(orgData.name || "this organization");
 
             const invited: any[] = orgData.invitedDirectors || [];
@@ -78,9 +79,27 @@ export default function AcceptInvitation() {
                 setTimeout(() => navigate("/dashboard"), 2500);
             } else {
                 // Email mismatch — this link wasn't for this account
-                if (invite && invite.email !== currentUser.email) {
-                    setStatus("not_invited");
-                } else {
+                if (
+                    currentUser &&
+                    invite &&
+                    invite.email.toLowerCase() !== currentUser.email?.toLowerCase()
+                  ) {
+                    sessionStorage.setItem(PENDING_INVITE_KEY, token);
+                  
+                    await signOut(getAuth(app));
+                  
+                    navigate("/auth", {
+                      replace: true,
+                      state: {
+                        inviteToken: token,
+                        orgName: orgData.name,
+                        inviteEmail: invite.email,
+                      },
+                    });
+                  
+                    return;
+                  }
+                   else {
                     setStatus("error");
                 }
             }

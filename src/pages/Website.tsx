@@ -1,6 +1,13 @@
+import About from "../components/About"
+import Hero from "../components/Hero"
+
 const Website = () => {
   return (
-    <div></div>
+    <div className="w-full">
+      <Hero />
+      <About />
+      <Hero />
+    </div>
   )
 }
 

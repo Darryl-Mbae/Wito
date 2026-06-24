@@ -1,42 +1,27 @@
 import { useState } from "react";
+import type { EmailTemplateId } from "../lib/emails/html-templates";
+import { sendTemplatedEmail } from "../lib/emails/sendEmail";
 
 export function useMailtrap() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
-    async function sendEmail<T extends Record<string, string>>(
+    async function sendEmail(
         recipientEmail: string,
-        templateUuid: string,
-        variables: T
+        templateId: EmailTemplateId,
+        variables: Record<string, string>
     ) {
         setIsLoading(true);
         setError(null);
         setSuccess(false);
 
         try {
-            const response = await fetch("https://mailtrap.darrylmbae01.workers.dev/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    recipientEmail,
-                    templateUuid,
-                    variables,
-                }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error((data as { error?: string }).error || `Mailtrap error: ${response.statusText}`);
-            }
-
+            const data = await sendTemplatedEmail(recipientEmail, templateId, variables);
             setSuccess(true);
             return data;
-        } catch (err: any) {
-            const errorMessage = err.message || "Failed to send email execution";
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to send email";
             setError(errorMessage);
             throw err;
         } finally {

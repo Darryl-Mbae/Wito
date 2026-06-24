@@ -15,6 +15,8 @@ import {
 import { getAuth } from "firebase/auth";
 import app from "../../config/firebase";
 import { type DashboardContextType } from "../Dashboard";
+import { useMailtrap } from "../../hooks/useMailtrap";
+import { EMAIL_TEMPLATES } from "../../lib/emails/templates";
 
 const Directors: React.FC = () => {
   const { activeOrg } = useOutletContext<DashboardContextType>();
@@ -24,6 +26,8 @@ const Directors: React.FC = () => {
   const [newEmail, setNewEmail] = useState("");
   const [orgData, setOrgData] = useState<any>(null);
   const [isInvitedMember, setIsInvitedMember] = useState(false);
+  const { sendEmail } = useMailtrap();
+
 
   useEffect(() => {
     if (!activeOrg) {
@@ -122,7 +126,10 @@ const Directors: React.FC = () => {
 
     const db = getFirestore(app);
     const orgRef = doc(db, "organizations", activeOrg.id);
+    const token = crypto.randomUUID();
 
+
+  
     const exists = orgData?.invitedDirectors?.find(
       (d: any) => d.email === newEmail
     );
@@ -133,13 +140,33 @@ const Directors: React.FC = () => {
 
     try {
       await updateDoc(orgRef, {
-        invitedDirectors: [...(orgData?.invitedDirectors || []), { email: newEmail, accepted: false }],
+        invitedDirectors: [...(orgData?.invitedDirectors || []), { email: newEmail, accepted: false, token: token }],
       });
       setNewEmail("");
-    } catch (err) {
+    } 
+    catch (err) {
       console.error("Error adding director", err);
+      return;
     }
+    finally {
+      sendEmail(
+        newEmail,
+        EMAIL_TEMPLATES.userInvitation.id,
+        {
+          company_name: orgData?.name,
+          logo_url: import.meta.env.VITE_LOGO_URL ?? `${window.location.origin}/images/logo.png`,
+          email: newEmail,
+          base_url: window.location.origin,
+          token: token,
+        }
+      )
+    }
+
+
   };
+
+
+
 
   const handleRemoveDirector = async (emailToRemove: string) => {
     if (!activeOrg) return;

@@ -1,22 +1,9 @@
-import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
-import app from "../config/firebase";
+import { useAuthContext } from "../contexts/AuthContext";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuthContext();
   const location = useLocation();
-
-  useEffect(() => {
-    const auth = getAuth(app);
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   if (loading) {
     return (

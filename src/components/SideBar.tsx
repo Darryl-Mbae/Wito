@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  Calendar,
+  LayoutDashboard,
   ChevronLeft,
   ChevronRight,
   X,
@@ -98,7 +98,7 @@ const SideBar: React.FC<SidebarProps> = ({
         //   premium: activeOrg?.plan === "free",
         //   premiumDescription: "View detailed insights on event performance, attendance trends, and revenue over time.",
         // },
-        { name: "Calendar", icon: Calendar },
+        { name: "Dashboard", icon: LayoutDashboard },
         { name: "Events", icon: PlusCircle },
         { name: "Design", icon: Palette },
         { name: "Tasks", icon: CheckSquare, badge: taskCount > 0 ? taskCount : undefined },
@@ -122,7 +122,7 @@ const SideBar: React.FC<SidebarProps> = ({
     Analytics: "/dashboard",
     Design: "/dashboard/design",
     Tasks: "/dashboard/tasks",
-    Calendar: "/dashboard",          // index route is now CalendarPage
+    Dashboard: "/dashboard",
     Events: "/dashboard/events",
     Directors: "/dashboard/directors",
     Settings: "/dashboard/settings",

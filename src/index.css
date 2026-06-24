@@ -5,6 +5,7 @@
   --primary-light: rgba(120, 119, 198, 0.08);
   --primary-hover: rgba(120, 119, 198, 0.9);
   --primary-gradient-start: rgba(120, 119, 198, 0.3);
+  --border-light: rgba(17, 17, 17, 0.15);
 }
 
 body {
@@ -33,4 +34,12 @@ body {
   /* IE and Edge */
   scrollbar-width: none;
   /* Firefox */
+}
+
+@theme {
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-gradient-start: var(--primary-gradient-start);
+  --color-border-light: var(--border-light);
 }

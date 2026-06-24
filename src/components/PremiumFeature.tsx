@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { Gem, X } from "lucide-react";
+import { useActiveOrg } from "../contexts/ActiveOrgContext";
 
 export const PremiumModal: React.FC<{ description: string; onClose: () => void }> = ({ description, onClose }) => {
   return createPortal(
@@ -54,17 +55,21 @@ export const PremiumFeature: React.FC<PremiumFeatureProps> = ({
   className = "",
   tooltipPosition = "bottom",
 }) => {
+  const { activeOrg } = useActiveOrg();
   const [showModal, setShowModal] = useState(false);
 
+  const isFree = !activeOrg || activeOrg.plan === "free";
+  const isLocked = isPremium && isFree;
+
   const handleClickCapture = (e: React.MouseEvent) => {
-    if (isPremium) {
+    if (isLocked) {
       e.preventDefault();
       e.stopPropagation();
       setShowModal(true);
     }
   };
 
-  if (!isPremium) {
+  if (!isLocked) {
     return <>{children}</>;
   }
 

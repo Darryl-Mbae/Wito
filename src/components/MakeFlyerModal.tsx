@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { X, Sparkles, AlertCircle, Loader2, Eye, SlidersHorizontal, Code2, RefreshCw } from "lucide-react";
+import { X, Sparkles, AlertCircle, Loader2, Eye, SlidersHorizontal, Code2, RefreshCw, Plus, Calendar } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import type { SavedTemplate } from "./TemplateEditor";
 import { LAYOUT_PRESETS } from "./TemplateEditor";
@@ -24,14 +24,6 @@ type Props = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// Builds the iframe's initial document. Beyond seeding `window.__data__`, this injects:
-//   1. A `message` listener that patches `window.__data__` whenever the parent posts
-//      { type: "__FLYER_DATA__", payload }.
-//   2. A `dataupdate` CustomEvent, fired both on initial load and on every subsequent
-//      postMessage update, so templates can use a single render path:
-//        window.addEventListener("dataupdate", (e) => render(e.detail));
-// This lets the parent push new data into an already-loaded iframe via postMessage
-// instead of re-encoding the whole document and reloading the `src`.
 function buildPreviewHtml(htmlCode: string, initialJsonData: string): string {
     let parsed: unknown = null;
     try { parsed = JSON.parse(initialJsonData); } catch { /* ignore */ }
@@ -64,15 +56,13 @@ window.__data__ = ${JSON.stringify(parsed ?? null)};
     return injected + "\n" + trimmed;
 }
 
-// Detect what input type a key/value should get
 function inferInputType(key: string, value: unknown): "date" | "time" | "textarea" | "text" {
     if (key.toLowerCase().includes("date")) return "date";
-    if (key.toLowerCase().includes("time")) return "time";
+    if (key.toLowerCase().includes("time")) return "text";
     if (typeof value === "string" && value.length > 80) return "textarea";
     return "text";
 }
 
-// Fallback: turn snake_case / camelCase into a readable label when variables[] has no entry
 function keyToLabel(key: string): string {
     return key
         .replace(/_/g, " ")
@@ -90,7 +80,6 @@ type FriendlyFieldsProps = {
     onChange: (v: string) => void;
 };
 
-// A single scalar input (text / date / time / textarea)
 const ScalarInput: React.FC<{
     fieldKey: string;
     value: unknown;
@@ -98,10 +87,10 @@ const ScalarInput: React.FC<{
     onChange: (v: string) => void;
 }> = ({ fieldKey, value, label, onChange }) => {
     const type = inferInputType(fieldKey, value);
-    const cls = "w-full px-3 py-2 text-[12px] rounded-[8px] border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-[#7877C6]/30 placeholder:text-gray-300 text-gray-800";
+    const cls = "w-full px-3.5 py-2 text-[13px] font-medium rounded-xl border border-gray-200 bg-transparent focus:outline-none focus:border-[#7877C6] focus:ring-4 focus:ring-[#7877C6]/10 placeholder:text-gray-400 text-gray-800 transition-all";
     return (
-        <div>
-            <label className="block text-[11px] font-medium text-gray-600 mb-1">{label}</label>
+        <div className="space-y-1.5">
+            <label className="block text-[11px] uppercase tracking-wider font-semibold text-gray-500">{label}</label>
             {type === "textarea" ? (
                 <textarea
                     value={String(value ?? "")}
@@ -116,108 +105,175 @@ const ScalarInput: React.FC<{
                     value={String(value ?? "")}
                     onChange={(e) => onChange(e.target.value)}
                     className={cls}
-                    placeholder={type === "text" ? `Enter ${label.toLowerCase()}…` : undefined}
+                    placeholder={`Enter ${label.toLowerCase()}…`}
                 />
             )}
         </div>
     );
 };
 
-// A repeatable row editor for an array-of-objects field
+// ─── ArrayRowEditor (dynamic keys + max cap) ─────────────────────────────────
+
 const ArrayRowEditor: React.FC<{
     arrayKey: string;
     label: string;
     rows: Record<string, unknown>[];
     labelMap: Record<string, string>;
+    maxItems?: number;                          // ← new optional prop
     onChangeRows: (rows: Record<string, unknown>[]) => void;
-}> = ({ arrayKey: _arrayKey, label, rows, labelMap, onChangeRows }) => {
-    // Derive the sub-keys from the first row (these are the "constants" / template variables)
-    const subKeys: string[] = rows.length > 0 ? Object.keys(rows[0]) : [];
+}> = ({ arrayKey: _arrayKey, label, rows, labelMap, maxItems, onChangeRows }) => {
+
+    // Derive keys dynamically from the first row that has content.
+    // Falls back to checking labelMap keys so we still show fields
+    // even when the array is currently empty.
+    const subKeys: string[] = useMemo(() => {
+        const fromRow = rows.find((r) => Object.keys(r).length > 0);
+        if (fromRow) return Object.keys(fromRow);
+        // Fallback: use labelMap keys (these come from template variables)
+        return Object.keys(labelMap).length ? Object.keys(labelMap) : [];
+    }, [rows, labelMap]);
+
+    const atMax = maxItems !== undefined && rows.length >= maxItems;
 
     const updateCell = (rowIdx: number, subKey: string, value: string) => {
-        const next = rows.map((row, i) =>
+        onChangeRows(rows.map((row, i) =>
             i === rowIdx ? { ...row, [subKey]: value } : row
-        );
-        onChangeRows(next);
+        ));
     };
 
     const addRow = () => {
+        if (atMax) return;
         const empty = Object.fromEntries(subKeys.map((k) => [k, ""]));
         onChangeRows([...rows, empty]);
     };
 
-    const removeRow = (idx: number) => {
-        onChangeRows(rows.filter((_, i) => i !== idx));
-    };
+    const removeRow = (idx: number) => onChangeRows(rows.filter((_, i) => i !== idx));
 
-    const inputCls = "w-full px-2 py-1.5 text-[11px] rounded-[6px] border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-[#7877C6]/30 placeholder:text-gray-300 text-gray-800";
+    const baseInputCls =
+        "w-full px-3 py-2 text-[13px] font-medium rounded-lg border border-gray-200 bg-transparent " +
+        "placeholder:text-gray-400 text-gray-800 focus:outline-none focus:border-[#7877C6] " +
+        "focus:ring-2 focus:ring-[#7877C6]/10 transition-all";
+
+    // Which keys are "short" (render side-by-side in a 2-col grid)?
+    // Heuristic: keys whose label is ≤ 8 chars, or keys named day/month/weekday/time
+    const SHORT_KEY_RE = /^(day|month|weekday|time|date|num|no|id)$/i;
+    const shortKeys = subKeys.filter(
+        (k) => SHORT_KEY_RE.test(k)
+    );
+    const longKeys = subKeys.filter((k) => !shortKeys.includes(k));
 
     return (
-        <div>
-            {/* Section header */}
-            <div className="flex items-center justify-between mb-2">
-                <p className="text-[11px] font-semibold text-gray-700">{label}</p>
+        <div className="space-y-3">
+            {/* Header row */}
+            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                <p className="text-[12px] uppercase tracking-wider font-bold text-gray-700">{label}</p>
                 <button
                     type="button"
                     onClick={addRow}
-                    className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#7877C6]/10 text-[#7877C6] text-[10px] font-medium hover:bg-[#7877C6]/20 transition cursor-pointer"
+                    disabled={atMax}
+                    title={atMax ? `Maximum of ${maxItems} items` : undefined}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#7877C6] text-white
+                               text-[11px] font-semibold hover:bg-[#6665b5] transition active:scale-95
+                               cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                    <span className="text-base leading-none">+</span> Add row
+                    <Plus size={12} strokeWidth={2.5} />
+                    {atMax ? `Max ${maxItems}` : "Add item"}
                 </button>
             </div>
 
-            {/* Column headers — derived from template variable labels */}
-            {subKeys.length > 0 && (
-                <div
-                    className="grid gap-1.5 mb-1 px-1"
-                    style={{ gridTemplateColumns: `repeat(${subKeys.length}, minmax(0,1fr)) 24px` }}
-                >
-                    {subKeys.map((k) => (
-                        <p key={k} className="text-[10px] font-medium text-gray-400 truncate">
-                            {labelMap[k] ?? keyToLabel(k)}
-                        </p>
-                    ))}
-                    <span />
-                </div>
-            )}
-
-            {/* Rows */}
-            <div className="space-y-1.5">
+            {/* Row cards */}
+            <div className="space-y-3.5">
                 {rows.map((row, rowIdx) => (
                     <div
                         key={rowIdx}
-                        className="grid gap-1.5 items-center"
-                        style={{ gridTemplateColumns: `repeat(${subKeys.length}, minmax(0,1fr)) 24px` }}
+                        className="relative bg-transparent rounded-2xl p-3 border border-gray-200
+                                   flex flex-col gap-2.5 group"
                     >
-                        {subKeys.map((k) => (
-                            <input
-                                key={k}
-                                type={inferInputType(k, row[k])}
-                                value={String(row[k] ?? "")}
-                                onChange={(e) => updateCell(rowIdx, k, e.target.value)}
-                                className={inputCls}
-                                placeholder={labelMap[k] ?? keyToLabel(k)}
-                            />
+                        {/* Card header */}
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] border border-gray-200 text-gray-600
+                                             font-bold px-2 py-0.5 rounded-full">
+                                #{rowIdx + 1}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => removeRow(rowIdx)}
+                                className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50
+                                           transition opacity-100 sm:opacity-0 group-hover:opacity-100 cursor-pointer"
+                                title="Remove"
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
+
+                        {/* Short keys → 2-col grid */}
+                        {shortKeys.length > 0 && (
+                            <div
+                                className="grid gap-2"
+                                style={{ gridTemplateColumns: `repeat(${Math.min(shortKeys.length, 3)}, 1fr)` }}
+                            >
+                                {shortKeys.map((k) => (
+                                    <div key={k}>
+                                        <label className="block text-[9px] font-bold text-gray-400
+                                                          uppercase mb-0.5 ml-1">
+                                            {labelMap[k] ?? keyToLabel(k)}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={String(row[k] ?? "")}
+                                            onChange={(e) => updateCell(rowIdx, k, e.target.value)}
+                                            className={`${baseInputCls} text-center`}
+                                            placeholder={labelMap[k] ?? keyToLabel(k)}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Long keys → full width, stacked */}
+                        {longKeys.map((k) => (
+                            <div key={k}>
+                                <label className="block text-[9px] font-bold text-gray-400
+                                                  uppercase mb-0.5 ml-1">
+                                    {labelMap[k] ?? keyToLabel(k)}
+                                </label>
+                                <input
+                                    type="text"
+                                    value={String(row[k] ?? "")}
+                                    onChange={(e) => updateCell(rowIdx, k, e.target.value)}
+                                    className={`${baseInputCls} text-left px-3`}
+                                    placeholder={`Enter ${(labelMap[k] ?? keyToLabel(k)).toLowerCase()}…`}
+                                />
+                            </div>
                         ))}
-                        <button
-                            type="button"
-                            onClick={() => removeRow(rowIdx)}
-                            className="w-6 h-6 flex items-center justify-center rounded-md text-gray-300 hover:text-red-400 hover:bg-red-50 transition cursor-pointer shrink-0"
-                            title="Remove row"
-                        >
-                            <X size={11} />
-                        </button>
                     </div>
                 ))}
+
                 {rows.length === 0 && (
-                    <p className="text-[11px] text-gray-400 py-2 text-center">
-                        No entries yet —{" "}
-                        <button onClick={addRow} className="text-[#7877C6] hover:underline cursor-pointer">
-                            add one
+                    <div className="text-center py-6 border-2 border-dashed border-gray-200
+                                    rounded-2xl bg-transparent">
+                        <Calendar size={24} className="mx-auto text-gray-300 mb-1.5" />
+                        <p className="text-[12px] text-gray-400 font-medium">
+                            No entries yet.
+                        </p>
+                        <button
+                            onClick={addRow}
+                            disabled={atMax}
+                            className="mt-2 text-[12px] font-semibold text-[#7877C6]
+                                       hover:underline cursor-pointer disabled:opacity-40"
+                        >
+                            Add your first item
                         </button>
-                    </p>
+                    </div>
                 )}
             </div>
+
+            {/* Cap hint */}
+            {atMax && (
+                <p className="text-[11px] text-gray-400 text-right">
+                    Maximum of {maxItems} items reached.
+                </p>
+            )}
         </div>
     );
 };
@@ -226,13 +282,11 @@ const FriendlyFields: React.FC<FriendlyFieldsProps> = ({ jsonData, variables, on
     const [mode, setMode] = useState<FieldsMode>("friendly");
     const [jsonError, setJsonError] = useState<string | null>(null);
 
-    // key → label from template.variables (covers both top-level and sub-keys)
     const labelMap = useMemo(() =>
         Object.fromEntries(variables.map((v) => [v.key, v.label])),
         [variables]
     );
 
-    // The root parsed object (only when root is an object, not an array)
     const parsed = useMemo(() => {
         try {
             const p = JSON.parse(jsonData);
@@ -245,65 +299,65 @@ const FriendlyFields: React.FC<FriendlyFieldsProps> = ({ jsonData, variables, on
         try { return Array.isArray(JSON.parse(jsonData)); } catch { return false; }
     }, [jsonData]);
 
-    // Update a single scalar key on the root object
     const handleScalarChange = (key: string, value: string) => {
         if (!parsed) return;
         onChange(JSON.stringify({ ...parsed, [key]: value }, null, 2));
     };
 
-    // Update an array field on the root object
     const handleArrayChange = (key: string, rows: Record<string, unknown>[]) => {
         if (!parsed) return;
         onChange(JSON.stringify({ ...parsed, [key]: rows }, null, 2));
     };
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-            {/* Mode toggle */}
-            <div className="flex items-center gap-1 px-4 pt-3 pb-2 shrink-0">
+        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto bg-transparent">
+            <div className="flex items-center gap-1 px-4 pt-4 pb-2 shrink-0 bg-transparent border-b border-gray-100">
                 <button
                     onClick={() => setMode("friendly")}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition cursor-pointer
-                        ${mode === "friendly" ? "bg-[#7877C6]/10 text-[#7877C6]" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"}`}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition cursor-pointer
+                        ${mode === "friendly" ? "bg-white text-[#7877C6] border border-gray-200" : "text-gray-400 hover:text-gray-600"}`}
                 >
                     <SlidersHorizontal size={11} /> Fields
                 </button>
                 <button
                     onClick={() => { setMode("json"); setJsonError(null); }}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition cursor-pointer
-                        ${mode === "json" ? "bg-[#7877C6]/10 text-[#7877C6]" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"}`}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition cursor-pointer
+                        ${mode === "json" ? "bg-white text-[#7877C6] border border-gray-200" : "text-gray-400 hover:text-gray-600"}`}
                 >
                     <Code2 size={11} /> JSON
                 </button>
             </div>
 
             {mode === "friendly" ? (
-                <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 space-y-4" style={{ scrollbarWidth: "none" }}>
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5" style={{ scrollbarWidth: "none" }}>
                     {parsed && !isRootArray ? (
                         Object.entries(parsed).map(([key, value]) => {
                             const label = labelMap[key] ?? keyToLabel(key);
 
-                            // Array of objects → repeatable row editor
                             if (
                                 Array.isArray(value) &&
                                 (value.length === 0 || (typeof value[0] === "object" && value[0] !== null && !Array.isArray(value[0])))
                             ) {
+                                // Pull maxItems from the matching variable definition, if present
+                                const varDef = variables.find((v) => v.key === key) as
+                                    | (typeof variables[number] & { maxItems?: number })
+                                    | undefined;
+
                                 return (
-                                    <div key={key} className="pt-3 border-t border-gray-100 first:border-t-0 first:pt-0">
+                                    <div key={key} className="pt-2">
                                         <ArrayRowEditor
                                             arrayKey={key}
                                             label={label}
                                             rows={value as Record<string, unknown>[]}
                                             labelMap={labelMap}
+                                            maxItems={varDef?.maxItems}        // ← wire it up
                                             onChangeRows={(rows) => handleArrayChange(key, rows)}
                                         />
                                     </div>
                                 );
                             }
-
-                            // Scalar field
                             return (
-                                <div key={key} className="pt-3 border-t border-gray-100 first:border-t-0 first:pt-0">
+                                <div key={key}>
                                     <ScalarInput
                                         fieldKey={key}
                                         value={value}
@@ -315,23 +369,22 @@ const FriendlyFields: React.FC<FriendlyFieldsProps> = ({ jsonData, variables, on
                         })
                     ) : isRootArray ? (
                         <div className="space-y-2 pt-1">
-                            <p className="text-[11px] text-gray-500 leading-relaxed">
+                            <p className="text-[12px] text-gray-500 leading-relaxed">
                                 This template uses a top-level array. Switch to <strong>JSON</strong> to edit entries directly.
                             </p>
                             <button
                                 onClick={() => setMode("json")}
-                                className="text-[11px] text-[#7877C6] hover:underline cursor-pointer"
+                                className="text-[12px] font-semibold text-[#7877C6] hover:underline cursor-pointer"
                             >
                                 Open JSON editor →
                             </button>
                         </div>
                     ) : (
-                        <p className="text-[11px] text-gray-400 pt-1">No editable fields found.</p>
+                        <p className="text-[12px] text-gray-400 pt-1">No editable fields found.</p>
                     )}
                 </div>
             ) : (
-                /* JSON tab — Monaco, explicit min-height so it works on mobile too */
-                <div className="flex flex-col flex-1 min-h-0 overflow-hidden pt-2">
+                <div className="flex flex-col flex-1 overflow-y-auto pt-2">
                     <div
                         className={`flex-1 border-y ${jsonError ? "border-red-200" : "border-gray-100"}`}
                         style={{ minHeight: 460 }}
@@ -366,11 +419,11 @@ const FriendlyFields: React.FC<FriendlyFieldsProps> = ({ jsonData, variables, on
                     </div>
                     {jsonError && (
                         <div className="flex items-center gap-1.5 px-4 py-2 bg-red-50/60 shrink-0">
-                            <AlertCircle size={10} className="text-red-400 shrink-0" />
-                            <p className="text-[10px] text-red-500 font-mono leading-snug">{jsonError}</p>
+                            <AlertCircle size={12} className="text-red-500 shrink-0" />
+                            <p className="text-[11px] text-red-600 font-mono leading-snug">{jsonError}</p>
                         </div>
                     )}
-                    <p className="px-4 py-2.5 text-[10px] text-gray-400 shrink-0 leading-relaxed">
+                    <p className="px-4 py-2.5 text-[11px] text-gray-400 shrink-0 leading-relaxed">
                         Available as <code className="font-mono text-[#7877C6]">window.__data__</code> in your template.
                     </p>
                 </div>
@@ -403,8 +456,8 @@ const ScaledPreview = React.forwardRef<
         <div ref={wrapperRef} className="w-full h-full flex items-center justify-center">
             <div style={{
                 width: canvasWidth * scale, height: canvasHeight * scale,
-                borderRadius: 10, overflow: "hidden", flexShrink: 0,
-                boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
+                borderRadius: 16, overflow: "hidden", flexShrink: 0,
+                border: "1px solid #e2e8f0",
             }}>
                 <iframe
                     ref={iframeRef}
@@ -424,8 +477,6 @@ const ScaledPreview = React.forwardRef<
 });
 ScaledPreview.displayName = "ScaledPreview";
 
-// ─── Mobile tab type ──────────────────────────────────────────────────────────
-
 type MobileTab = "fields" | "preview";
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
@@ -440,8 +491,6 @@ const MakeFlyerModal: React.FC<Props> = ({ template, orgId, workerUrl, onClose, 
     const [saveError, setSaveError] = useState<string | null>(null);
     const [mobileTab, setMobileTab] = useState<MobileTab>("fields");
 
-    // Iframe ref + readiness — used to push live data updates via postMessage
-    // instead of re-encoding the document and reloading `src` on every keystroke.
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const [iframeReady, setIframeReady] = useState(false);
     const handlePreviewLoad = () => setIframeReady(true);
@@ -452,22 +501,15 @@ const MakeFlyerModal: React.FC<Props> = ({ template, orgId, workerUrl, onClose, 
         catch { return true; }
     }, [jsonData]);
 
-    // Close on Escape
     useEffect(() => {
         const h = (e: KeyboardEvent) => { if (e.key === "Escape" && !isSaving) onClose(); };
         window.addEventListener("keydown", h);
         return () => window.removeEventListener("keydown", h);
     }, [onClose, isSaving]);
 
-    // `previewData` is the JSON snapshot the iframe document is actually built from.
-    // It only changes via the debounced auto-refresh below or a manual "Refresh
-    // preview" click — both of which trigger a full (but infrequent) iframe reload.
-    // This is the guaranteed fallback for templates that don't implement the
-    // `dataupdate` listener used by the postMessage live-update path.
     const [previewData, setPreviewData] = useState(template.jsonData ?? "{}");
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Auto-refresh the preview ~800ms after the user stops typing.
     useEffect(() => {
         if (hasJsonError) return;
         if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -484,8 +526,6 @@ const MakeFlyerModal: React.FC<Props> = ({ template, orgId, workerUrl, onClose, 
 
     const previewPending = !hasJsonError && jsonData !== previewData;
 
-    // `src` is rebuilt whenever `previewData` changes (debounced/manual refresh only —
-    // NOT on every keystroke).
     const previewSrc = useMemo(() => {
         if (!template.htmlCode?.trim()) return null;
         return `data:text/html;charset=utf-8,${encodeURIComponent(
@@ -493,12 +533,8 @@ const MakeFlyerModal: React.FC<Props> = ({ template, orgId, workerUrl, onClose, 
         )}`;
     }, [template.htmlCode, previewData]);
 
-    // Reset readiness whenever the underlying document changes/reloads.
     useEffect(() => { setIframeReady(false); }, [previewSrc]);
 
-    // Best-effort: also push live edits into the already-loaded iframe via postMessage,
-    // for templates whose own code listens for `dataupdate` and re-renders without a
-    // reload. Harmless no-op for templates that don't.
     useEffect(() => {
         if (!iframeReady || hasJsonError) return;
         let parsed: unknown = null;
@@ -563,30 +599,30 @@ const MakeFlyerModal: React.FC<Props> = ({ template, orgId, workerUrl, onClose, 
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/40 backdrop-blur-sm"
             onClick={(e) => { if (e.target === e.currentTarget && !isSaving) onClose(); }}
         >
-            <div className="bg-white sm:rounded-3xl rounded-t-3xl shadow-2xl w-full sm:max-w-4xl flex flex-col overflow-hidden"
-                style={{ maxHeight: "94vh", height: "94vh" }}
+            <div className="bg-white sm:rounded-3xl rounded-t-3xl w-full sm:max-w-5xl flex flex-col overflow-hidden h-[94vh] sm:h-[94vh]"
+                style={{ maxHeight: "94vh" }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+                <div className="flex items-center justify-between px-6 py-4.5 border-b border-gray-100 shrink-0">
                     <div>
-                        <h2 className="text-sm font-semibold text-gray-900">Make flyer</h2>
-                        <p className="text-[11px] text-gray-400 mt-0.5">
+                        <h2 className="text-base font-bold text-gray-900">Make flyer</h2>
+                        <p className="text-[12px] font-medium text-gray-400 mt-0.5">
                             {template.name} · {canvasWidth} × {canvasHeight}px
                         </p>
                     </div>
                     <button
                         onClick={onClose} disabled={isSaving}
-                        className="h-8 w-8 rounded-xl hover:bg-gray-100 flex items-center justify-center transition cursor-pointer disabled:opacity-40"
+                        className="h-9 w-9 rounded-xl hover:bg-gray-100 flex items-center justify-center transition cursor-pointer disabled:opacity-40"
                     >
-                        <X size={14} className="text-gray-500" />
+                        <X size={16} className="text-gray-500" />
                     </button>
                 </div>
 
-                {/* ── Mobile tab bar ───────────────────────────────────────── */}
-                <div className="flex sm:hidden shrink-0 border-b border-gray-100 px-4 pt-2">
+                {/* Mobile Tab Bar */}
+                <div className="flex sm:hidden shrink-0 border-b border-gray-100 px-4 pt-2 bg-transparent">
                     {([
                         { id: "fields" as MobileTab, label: "Details", icon: <SlidersHorizontal size={12} /> },
                         { id: "preview" as MobileTab, label: "Preview", icon: <Eye size={12} /> },
@@ -594,7 +630,7 @@ const MakeFlyerModal: React.FC<Props> = ({ template, orgId, workerUrl, onClose, 
                         <button
                             key={tab.id}
                             onClick={() => setMobileTab(tab.id)}
-                            className={`flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium border-b-2 transition cursor-pointer mr-2
+                            className={`flex items-center gap-1.5 px-4 py-2.5 text-[12px] font-bold border-b-2 transition cursor-pointer mr-2
                                 ${mobileTab === tab.id
                                     ? "border-[#7877C6] text-[#7877C6]"
                                     : "border-transparent text-gray-400 hover:text-gray-600"}`}
@@ -604,11 +640,10 @@ const MakeFlyerModal: React.FC<Props> = ({ template, orgId, workerUrl, onClose, 
                     ))}
                 </div>
 
-                {/* Body */}
-                <div className="flex flex-col sm:flex-row flex-1 min-h-0 overflow-hidden">
-
-                    {/* Left — fields (desktop always visible; mobile only on "fields" tab) */}
-                    <div className={`sm:flex sm:w-72 shrink-0 flex-col min-h-0 border-b sm:border-b-0 sm:border-r border-gray-100
+                {/* Main Content Layout Block */}
+                <div className="flex flex-col sm:flex-row flex-1 min-h-0 overflow-y-auto sm:overflow-hidden">
+                    {/* Left Details Configuration Frame */}
+                    <div className={`sm:flex sm:w-86 shrink-0 flex-col min-h-0 border-b sm:border-b-0 sm:border-r border-gray-100 h-full overflow-y-auto
                         ${mobileTab === "fields" ? "flex" : "hidden"}`}
                     >
                         <FriendlyFields
@@ -618,21 +653,21 @@ const MakeFlyerModal: React.FC<Props> = ({ template, orgId, workerUrl, onClose, 
                         />
 
                         {saveError && (
-                            <div className="mx-4 mb-3 flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-50 border border-red-100 shrink-0">
-                                <AlertCircle size={12} className="text-red-400 mt-0.5 shrink-0" />
-                                <p className="text-[11px] text-red-600 leading-relaxed break-all">{saveError}</p>
+                            <div className="mx-4 mb-4 flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-50 border border-red-100 shrink-0">
+                                <AlertCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
+                                <p className="text-[12px] text-red-600 font-medium leading-relaxed break-all">{saveError}</p>
                             </div>
                         )}
                     </div>
 
-                    {/* Right — preview (desktop always visible; mobile only on "preview" tab) */}
-                    <div className={`sm:flex flex-1 min-h-0 flex-col bg-[#f7f7f9]
+                    {/* Right Live Visual Render Area */}
+                    <div className={`sm:flex flex-1 min-h-0 flex-col bg-transparent h-full overflow-y-auto
                         ${mobileTab === "preview" ? "flex" : "hidden"}`}
                     >
-                        <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-gray-100 bg-white shrink-0">
+                        <div className="flex items-center justify-between gap-2 px-5 py-3 border-b border-gray-100 bg-white shrink-0">
                             <div className="flex items-center gap-2">
-                                <div className={`h-1.5 w-1.5 rounded-full transition-colors ${isSaving ? "bg-amber-400 animate-pulse" : previewPending ? "bg-amber-400 animate-pulse" : "bg-emerald-400"}`} />
-                                <span className="text-[10px] text-gray-400 font-medium">
+                                <div className={`h-2 w-2 rounded-full transition-colors ${isSaving || previewPending ? "bg-amber-400 animate-pulse" : "bg-emerald-400"}`} />
+                                <span className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">
                                     {isSaving ? "Saving…" : previewPending ? "Updating…" : "Live preview"}
                                 </span>
                             </div>
@@ -640,12 +675,12 @@ const MakeFlyerModal: React.FC<Props> = ({ template, orgId, workerUrl, onClose, 
                                 onClick={handleRefreshPreview}
                                 disabled={hasJsonError}
                                 title="Refresh preview"
-                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-gray-400 hover:text-[#7877C6] hover:bg-[#7877C6]/10 transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-[11px] font-bold text-gray-500 hover:text-[#7877C6] hover:border-[#7877C6]/30 hover:bg-[#7877C6]/5 transition cursor-pointer disabled:opacity-30"
                             >
-                                <RefreshCw size={11} /> Refresh
+                                <RefreshCw size={12} /> Refresh
                             </button>
                         </div>
-                        <div className="flex-1 min-h-0 p-5 flex items-center justify-center">
+                        <div className="flex-1 min-h-0 p-6 flex items-center justify-center">
                             {previewSrc ? (
                                 <ScaledPreview
                                     ref={iframeRef}
@@ -655,29 +690,29 @@ const MakeFlyerModal: React.FC<Props> = ({ template, orgId, workerUrl, onClose, 
                                     onLoad={handlePreviewLoad}
                                 />
                             ) : (
-                                <p className="text-xs text-gray-400">No HTML template attached.</p>
+                                <p className="text-sm text-gray-400">No HTML template attached.</p>
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* Footer */}
-                <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-white shrink-0">
+                {/* Footer Controls Container */}
+                <div className="flex items-center justify-end gap-3 px-6 py-4.5 border-t border-gray-100 bg-white shrink-0">
                     <button
                         onClick={onClose} disabled={isSaving}
-                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 transition cursor-pointer disabled:opacity-40"
+                        className="px-5 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer disabled:opacity-40"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleGenerate}
                         disabled={hasJsonError || isSaving || !template.htmlCode}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#7877C6] hover:bg-[#6665b5] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium transition cursor-pointer min-w-[120px] justify-center"
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#7877C6] hover:bg-[#6665b5] disabled:opacity-50 text-white text-xs font-bold transition cursor-pointer min-w-[130px] justify-center active:scale-98"
                     >
                         {isSaving ? (
-                            <><Loader2 size={12} className="animate-spin" />Saving…</>
+                            <><Loader2 size={14} className="animate-spin" />Saving…</>
                         ) : (
-                            <><Sparkles size={12} />Save flyer</>
+                            <><Sparkles size={14} />Save flyer</>
                         )}
                     </button>
                 </div>

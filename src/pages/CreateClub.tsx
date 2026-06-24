@@ -74,13 +74,13 @@ export default function CreateClub() {
         const emailPromises = directorsWithTokens.map((dir) =>
           sendEmail(
             dir.email,
-            EMAIL_TEMPLATES.userInvitation.uuid,
+            EMAIL_TEMPLATES.userInvitation.id,
             {
               company_name: clubName,
-              logo_url: import.meta.env.VITE_LOGO_URL,
+              logo_url: import.meta.env.VITE_LOGO_URL ?? `${window.location.origin}/images/logo.png`,
               email: dir.email,
               base_url: window.location.origin,
-              token: dir.token,           // ← unique per person
+              token: dir.token,
             }
           )
         );

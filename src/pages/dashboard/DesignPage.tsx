@@ -13,6 +13,8 @@ import {
 } from "firebase/firestore";
 import app from "../../config/firebase";
 import { getAuth, type User } from "firebase/auth";
+import { useOutletContext } from "react-router-dom";
+import { type DashboardContextType } from "../Dashboard";
 
 import IntegrationsSection, { type Integration } from "../../components/IntergrationsSection";
 import TemplatesSection from "../../components/TemplatesSection";
@@ -109,10 +111,11 @@ async function removeFlyer(orgId: string, flyerId: string): Promise<void> {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const DesignPage: React.FC = () => {
+    const { activeOrg } = useOutletContext<DashboardContextType>();
     const [user, setUser] = useState<User | null>(null);
     useEffect(() => { const unsub = auth.onAuthStateChanged(setUser); return unsub; }, []);
 
-    const [orgId, setOrgId] = useState<string | null>(null);
+    const orgId = activeOrg?.id || null;
     const [activeTab, setActiveTab] = useState<Tab>("templates");
     const [integrations, setIntegrations] = useState<Integration[]>(DEFAULT_INTEGRATIONS);
     const [templates, setTemplates] = useState<SavedTemplate[]>([]);
@@ -123,19 +126,6 @@ const DesignPage: React.FC = () => {
     const [editorTarget, setEditorTarget] = useState<string | "new" | null>(null);
     // id of template to make a flyer from, or null
     const [flyerTarget, setFlyerTarget] = useState<string | null>(null);
-
-    // ── Resolve orgId ─────────────────────────────────────────────────────────
-    useEffect(() => {
-        if (!user) return;
-        (async () => {
-            const { getDoc, doc: firestoreDoc } = await import("firebase/firestore");
-            const snap = await getDoc(firestoreDoc(db, "users", user.uid));
-            if (snap.exists()) {
-                const orgs: { id: string }[] = snap.data().organization ?? [];
-                if (orgs.length > 0) setOrgId(orgs[0].id);
-            }
-        })();
-    }, [user]);
 
     // ── Load templates & flyers ───────────────────────────────────────────────
     useEffect(() => {
@@ -293,7 +283,7 @@ const DesignPage: React.FC = () => {
                         onCreateFlyer={() => setActiveTab("templates")}
                     />
                 ) : (
-                    <IntegrationsSection integrations={integrations} onToggle={handleToggle} />
+                    <IntegrationsSection integrations={integrations} onToggle={handleToggle} plan={activeOrg?.plan} />
                 )}
             </div>
 
