@@ -19,6 +19,7 @@ import {
     Search,
     Check,
     Gem,
+    Download,
 } from "lucide-react";
 import {
     formatDate,
@@ -68,6 +69,52 @@ const EventDetail: React.FC = () => {
             r.email === email ? { ...r, attended: !current } : r
         );
         await updateDoc(doc(db, "events", eventId), { registered: updated });
+    };
+
+    const exportToCSV = () => {
+        if (!event?.registered || event.registered.length === 0) return;
+
+        // CSV headers
+        const headers = ["Name", "Email", "Phone", "Type", "Club Name", "Payment Status", "Attended", "Registered At"];
+
+        // CSV rows
+        const rows = event.registered.map((r) => [
+            r.name,
+            r.email,
+            r.phone,
+            r.type,
+            r.clubName || "",
+            r.paymentStatus,
+            r.attended ? "Yes" : "No",
+            r.registeredAt ? new Date(r.registeredAt).toLocaleString() : "",
+        ]);
+
+        // Combine headers and rows
+        const csvContent = [
+            headers.join(","),
+            ...rows.map((row) =>
+                row
+                    .map((val) => {
+                        const escaped = String(val).replace(/"/g, '""');
+                        return `"${escaped}"`;
+                    })
+                    .join(",")
+            ),
+        ].join("\n");
+
+        // Create blob and trigger download
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+
+        // Create clean file name based on event name
+        const safeEventName = event.name.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+        link.setAttribute("download", `${safeEventName}_registered_list.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     if (loading) {
@@ -189,22 +236,34 @@ const EventDetail: React.FC = () => {
 
                     {/* Toolbar */}
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-4 border-b border-gray-100">
-                        <div className="relative flex-1 max-w-xs">
-                            <Search
-                                size={12}
-                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                            />
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search name or club…"
-                                className="w-full rounded-lg border border-gray-200 bg-white pl-8 pr-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-[#7877C6]/20 transition placeholder:text-gray-400 text-gray-900"
-                            />
+                        <div className="flex flex-row items-center gap-4">
+                            <div className="relative flex-1 max-w-xs">
+                                <Search
+                                    size={12}
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                                />
+                                <input
+                                    type="text"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder="Search name or club…"
+                                    className="w-full rounded-lg border border-gray-200 bg-white pl-8 pr-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-[#7877C6]/20 transition placeholder:text-gray-400 text-gray-900"
+                                />
+                            </div>
+                            <select
+                                value={filter}
+                                onChange={(e) => setFilter(e.target.value as typeof filter)}
+                                className="sm:hidden rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 outline-none focus:ring-1 focus:ring-[#7877C6]/20 cursor-pointer capitalize"
+                            >
+                                {(["all", "attended", "absent"] as const).map((f) => (
+                                    <option key={f} value={f} className="capitalize">{f}</option>
+                                ))}
+                            </select>
                         </div>
-                        <div className="sm:mt-2 flex flex-row gap-4">
-                            <PremiumFeature 
-                                isPremium={true} 
+
+                        <div className="sm:mt-2 md:mt-0 flex flex-row gap-4 items-center">
+                            <PremiumFeature
+                                isPremium={true}
                                 description="Automatically email all registrants to confirm their attendance with one click."
                                 tooltipPosition="bottom"
                             >
@@ -215,6 +274,15 @@ const EventDetail: React.FC = () => {
                                     Send attendance email
                                 </button>
                             </PremiumFeature>
+
+                            <button
+                                onClick={exportToCSV}
+                                disabled={registered.length === 0}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 text-xs font-medium cursor-pointer hover:bg-gray-50 hover:text-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Download size={12} className="text-gray-400" />
+                                Export list
+                            </button>
                             {/* Filter — tabs on desktop, dropdown on mobile */}
                             <div className="hidden sm:flex gap-1 bg-gray-100 rounded-xl p-1">
                                 {(["all", "attended", "absent"] as const).map((f) => (
@@ -231,15 +299,7 @@ const EventDetail: React.FC = () => {
                                 ))}
                             </div>
 
-                            <select
-                                value={filter}
-                                onChange={(e) => setFilter(e.target.value as typeof filter)}
-                                className="sm:hidden rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 outline-none focus:ring-1 focus:ring-[#7877C6]/20 cursor-pointer capitalize"
-                            >
-                                {(["all", "attended", "absent"] as const).map((f) => (
-                                    <option key={f} value={f} className="capitalize">{f}</option>
-                                ))}
-                            </select>
+
                         </div>
                     </div>
 

@@ -21,6 +21,11 @@ import {
     Phone,
     Users,
 } from "lucide-react";
+import AddToCalendar from "../components/AddToCalendar";
+import { sendTemplatedEmail } from "../lib/emails/sendEmail";
+import { EMAIL_TEMPLATES } from "../lib/emails/templates";
+import { buildGoogleCalendarUrl } from "../utils/calendarLinks";
+import appConfig from "../config/app";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -129,6 +134,45 @@ const EventPublic: React.FC = () => {
         });
     }, [id]);
 
+    useEffect(() => {
+        if (!event) return;
+
+        // Dynamic tab title
+        document.title = `${event.name} — Rada Events`;
+
+        const updateMeta = (selector: string, attribute: string, value: string) => {
+            let el = document.querySelector(selector);
+            if (!el) {
+                el = document.createElement("meta");
+                if (selector.startsWith("meta[name=")) {
+                    const name = selector.split("'")[1];
+                    el.setAttribute("name", name);
+                } else if (selector.startsWith("meta[property=")) {
+                    const prop = selector.split("'")[1];
+                    el.setAttribute("property", prop);
+                }
+                document.head.appendChild(el);
+            }
+            el.setAttribute(attribute, value);
+        };
+
+        const desc = event.description || `Register for ${event.name} via Rada.`;
+        const img = event.imageUrl || "/images/logo.png";
+
+        // Primary descriptions
+        updateMeta("meta[name='description']", "content", desc);
+
+        // Open Graph
+        updateMeta("meta[property='og:title']", "content", `${event.name} — Rada Events`);
+        updateMeta("meta[property='og:description']", "content", desc);
+        updateMeta("meta[property='og:image']", "content", img);
+
+        // Twitter
+        updateMeta("meta[name='twitter:title']", "content", `${event.name} — Rada Events`);
+        updateMeta("meta[name='twitter:description']", "content", desc);
+        updateMeta("meta[name='twitter:image']", "content", img);
+    }, [event]);
+
     // Check duplicate when email changes
     const checkDuplicate = (email: string) => {
         if (!event?.registered) return;
@@ -179,6 +223,43 @@ const EventPublic: React.FC = () => {
                     registeredAt: new Date().toISOString(),
                 }),
             });
+
+            if (event) {
+                const baseUrl = window.location.origin;
+                const eventUrl = `${baseUrl}/event/${id}`;
+                const optionalDetails = [
+                    event.fee ? `<p style="margin:0 0 8px 0;font-size:14px;color:#4a4a6a;"><strong>Entry fee:</strong> ${event.fee}</p>` : "",
+                    event.dresscode ? `<p style="margin:0;font-size:14px;color:#4a4a6a;"><strong>Dress code:</strong> ${event.dresscode}</p>` : "",
+                ].join("");
+
+                sendTemplatedEmail(
+                    form.email.trim().toLowerCase(),
+                    EMAIL_TEMPLATES.registrationConfirmation.id,
+                    {
+                        attendee_name: form.name.trim(),
+                        event_name: event.name,
+                        date: formatDate(event.date),
+                        time: formatTime(event.time),
+                        location: isVirtualLink(event.location)
+                            ? (isGoogleMeet(event.location) ? "Google Meet (online)" : "Online")
+                            : event.location,
+                        optional_details: optionalDetails,
+                        google_calendar_url: buildGoogleCalendarUrl({
+                            id,
+                            name: event.name,
+                            date: event.date,
+                            time: event.time,
+                            location: event.location,
+                            description: event.description,
+                        }),
+                        event_url: eventUrl,
+                        company_name: appConfig.name,
+                        base_url: baseUrl,
+                    }
+                ).catch((err) => console.error("Registration confirmation email failed:", err));
+            
+            }
+
             setSubmitted(true);
         } catch (err) {
             console.error("Registration error:", err);
@@ -296,6 +377,17 @@ const EventPublic: React.FC = () => {
                                 </div>
                             )}
                         </div>
+
+                        <AddToCalendar
+                            event={{
+                                id: id || undefined,
+                                name: event.name,
+                                date: event.date,
+                                time: event.time,
+                                location: event.location,
+                                description: event.description,
+                            }}
+                        />
 
                         {/* Name summary */}
                         <p className="text-xs text-center text-gray-400">

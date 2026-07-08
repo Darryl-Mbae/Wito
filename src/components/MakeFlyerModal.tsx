@@ -12,6 +12,8 @@ import {
 } from "firebase/firestore";
 import app from "../config/firebase";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 type Props = {
@@ -24,7 +26,7 @@ type Props = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function buildPreviewHtml(htmlCode: string, initialJsonData: string): string {
+export function buildPreviewHtml(htmlCode: string, initialJsonData: string): string {
     let parsed: unknown = null;
     try { parsed = JSON.parse(initialJsonData); } catch { /* ignore */ }
 
@@ -52,7 +54,7 @@ window.__data__ = ${JSON.stringify(parsed ?? null)};
     const withHead = trimmed.replace(/(<head[^>]*>)/i, `$1\n${injected}`);
     if (withHead !== trimmed) return withHead;
     const withBody = trimmed.replace(/(<body[^>]*>)/i, `${injected}\n$1`);
-    if (withBody !== trimmed) return withBody;
+    if (withBody !== trimmed) return injected + "\n" + trimmed;
     return injected + "\n" + trimmed;
 }
 
@@ -278,7 +280,7 @@ const ArrayRowEditor: React.FC<{
     );
 };
 
-const FriendlyFields: React.FC<FriendlyFieldsProps> = ({ jsonData, variables, onChange }) => {
+export const FriendlyFields: React.FC<FriendlyFieldsProps> = ({ jsonData, variables, onChange }) => {
     const [mode, setMode] = useState<FieldsMode>("friendly");
     const [jsonError, setJsonError] = useState<string | null>(null);
 
@@ -434,7 +436,7 @@ const FriendlyFields: React.FC<FriendlyFieldsProps> = ({ jsonData, variables, on
 
 // ─── Scaled iframe preview ────────────────────────────────────────────────────
 
-const ScaledPreview = React.forwardRef<
+export const ScaledPreview = React.forwardRef<
     HTMLIFrameElement,
     { src: string; canvasWidth: number; canvasHeight: number; onLoad?: () => void }
 >(({ src, canvasWidth, canvasHeight, onLoad }, iframeRef) => {

@@ -23,6 +23,8 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import DesignsPage from "./pages/dashboard/DesignPage";
 import TasksPage from "./pages/dashboard/TasksPage";
+import MakeFlyerPage from "./pages/dashboard/MakeFlyerPage";
+import TemplateMarketplace from "./pages/dashboard/TemplateMarketplace";
 
 export default function AppRouter() {
   return (
@@ -51,6 +53,8 @@ export default function AppRouter() {
         <Route path="events/:eventId" element={<EventDetail />} />
         <Route path="events" element={<Events />} />
         <Route path="design" element={<DesignsPage />} />
+        <Route path="design/flyer" element={<MakeFlyerPage />} />
+        <Route path="design/marketplace" element={<TemplateMarketplace />} />
         <Route path='notifications' element={<NotificationsPage />} />
         <Route path="directors" element={<Directors />} />
         <Route path="tasks" element={<TasksPage />} />

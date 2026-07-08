@@ -10,6 +10,8 @@ import {
 import type { User } from "firebase/auth";
 import app from "../config/firebase";
 import { ensureUserProfile } from "../lib/auth/ensureUserProfile";
+import { EMAIL_TEMPLATES } from "../lib/emails/templates";
+import { sendTemplatedEmail } from "../lib/emails/sendEmail";
 
 // ─── Resolve a pending invite token for a user ───────────────────────────────
 // Each invite entry has its own token. On accept: token is cleared (null),
@@ -67,6 +69,17 @@ export const resolveInviteToken = async (uid: string, token: string): Promise<bo
       await updateDoc(doc(db, "users", uid), {
         organization: [...existingOrgs, { id: matchedOrgId, role: "director" }],
       });
+
+      // Send welcome email welcoming them to the organization they just joined
+      try {
+        await sendTemplatedEmail(userEmail, EMAIL_TEMPLATES.welcomeEmail.id, {
+          email: userEmail,
+          company_name: matchedOrgData.name || "the organization",
+          base_url: window.location.origin,
+        });
+      } catch (welcomeErr) {
+        console.error("Welcome email to joined org failed:", welcomeErr);
+      }
     }
 
     return true;

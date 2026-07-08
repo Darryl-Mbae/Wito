@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Plus, Pencil, Trash2, Sparkles } from "lucide-react";
+import { Plus, Pencil, Trash2, Sparkles, ShoppingBag } from "lucide-react";
 import type { SavedTemplate, TemplateMethod } from "./TemplateEditor";
-import { LAYOUT_PRESETS } from "./TemplateEditor"; // re-export this from TemplateEditor (see note below)
+import { LAYOUT_PRESETS } from "./TemplateEditor";
 
 export type { SavedTemplate, TemplateMethod };
 
@@ -135,6 +135,14 @@ const TemplateCard: React.FC<{
                         <span className="text-white/40 text-[10px] font-medium tracking-widest uppercase">
                             {template.method}
                         </span>
+                    </div>
+                )}
+
+                {/* Sale badge */}
+                {template.isForSale && (
+                    <div className="absolute top-2 left-2 bg-[#7877C6] text-white px-2 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
+                        <ShoppingBag size={10} />
+                        KES {template.salePrice || 0}
                     </div>
                 )}
 

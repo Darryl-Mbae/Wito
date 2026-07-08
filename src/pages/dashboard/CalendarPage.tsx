@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
+import { EmptyState } from "../../components/EmptyState";
 import {
     getFirestore,
     collection,
@@ -29,6 +30,8 @@ import {
     CheckSquare,
     MoreVertical,
 } from "lucide-react";
+import { getAssigneeColor } from "../../utils/userColors";
+import AddToCalendar from "../../components/AddToCalendar";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -49,6 +52,7 @@ type CalEvent = {
     assignee?: string;
     visibility?: "public" | "private";
     createdBy?: string;
+    dueDate?: string | null;
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -224,9 +228,14 @@ const EventPanel: React.FC<{
                                     <span className={`text-xs font-medium ${event.status === 'done' ? 'text-emerald-500' : 'text-amber-500'}`}>
                                         {event.status === 'done' ? 'Completed' : 'To Do'}
                                     </span>
-                                    {event.assignee && (
-                                        <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">@{event.assignee}</span>
-                                    )}
+                                    {event.assignee && (() => {
+                                        const colors = getAssigneeColor(event.assignee);
+                                        return (
+                                            <span className={`text-[10px] ${colors.text} ${colors.bg} border ${colors.border} px-1.5 py-0.5 rounded-full`}>
+                                                @{event.assignee}
+                                            </span>
+                                        );
+                                    })()}
                                 </div>
                             )}
                         </div>
@@ -306,6 +315,20 @@ const EventPanel: React.FC<{
                                 </div>
                             </div>
                         }
+
+                        {!event.isTask && (
+                            <AddToCalendar
+                                compact
+                                event={{
+                                    id: event.id,
+                                    name: event.name,
+                                    date: event.date,
+                                    time: event.time,
+                                    location: event.location || "",
+                                    description: event.description,
+                                }}
+                            />
+                        )}
                     </div>
 
                     {/* Footer */}
@@ -318,12 +341,21 @@ const EventPanel: React.FC<{
                                 Go to tasks
                             </button>
                         ) : (
-                            <button
-                                onClick={() => navigate(`/dashboard/events/${event.id}`)}
-                                className="flex items-center justify-center w-full py-2.5 rounded-xl bg-[#7877C6] text-white text-xs font-medium hover:bg-[#6665b5] transition cursor-pointer"
-                            >
-                                View full details
-                            </button>
+                            <div className="space-y-2">
+                                <button
+                                    onClick={() => navigate(`/dashboard/design/flyer?eventId=${event.id}`)}
+                                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-[#7877C6] text-[#7877C6] text-xs font-medium hover:bg-[#7877C6]/5 transition cursor-pointer"
+                                >
+                                    <Sparkles size={12} />
+                                    Create flyer
+                                </button>
+                                <button
+                                    onClick={() => navigate(`/dashboard/events/${event.id}`)}
+                                    className="flex items-center justify-center w-full py-2.5 rounded-xl bg-[#7877C6] text-white text-xs font-medium hover:bg-[#6665b5] transition cursor-pointer"
+                                >
+                                    View full details
+                                </button>
+                            </div>
                         )}
                     </div>
                 </>
@@ -367,7 +399,6 @@ const CalendarPage: React.FC = () => {
         });
         return () => unsub();
     }, [activeOrg?.id]);
-
     // Fetch tasks
     useEffect(() => {
         const auth = getAuth(app);
@@ -389,7 +420,10 @@ const CalendarPage: React.FC = () => {
 
                 let dateStr = "";
                 let timeStr = "";
-                if (data.createdAt && data.createdAt.toDate) {
+                if (data.dueDate) {
+                    dateStr = data.dueDate;
+                    timeStr = "12:00";
+                } else if (data.createdAt && data.createdAt.toDate) {
                     const dObj = data.createdAt.toDate();
                     dateStr = toYMD(dObj.getFullYear(), dObj.getMonth(), dObj.getDate());
                     timeStr = `${String(dObj.getHours()).padStart(2, "0")}:${String(dObj.getMinutes()).padStart(2, "0")}`;
@@ -409,13 +443,13 @@ const CalendarPage: React.FC = () => {
                     assignee: data.assignee,
                     visibility: data.visibility,
                     createdBy: data.createdBy,
+                    dueDate: data.dueDate || null,
                 });
             });
             setTasks(fetchedTasks);
         });
         return () => unsub();
     }, [activeOrg?.id]);
-
     const todayStr = toYMD(today.getFullYear(), today.getMonth(), today.getDate());
 
     const combinedEvents = [...events, ...tasks];
@@ -458,7 +492,7 @@ const CalendarPage: React.FC = () => {
 
                     {/* Desktop: individual buttons */}
                     <button
-                        onClick={() => navigate("/dashboard/events")}
+                        onClick={() => navigate("/dashboard/events", { state: { openCreateModal: true, date: selectedDate || todayStr } })}
                         className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#7877C6] text-white text-xs font-medium hover:bg-[#6665b5] transition cursor-pointer"
                     >
                         <Plus size={13} />
@@ -513,7 +547,7 @@ const CalendarPage: React.FC = () => {
                                 <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                                 <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden min-w-[150px]">
                                     <button
-                                        onClick={() => { navigate("/dashboard/events"); setMenuOpen(false); }}
+                                        onClick={() => { navigate("/dashboard/events", { state: { openCreateModal: true, date: selectedDate || todayStr } }); setMenuOpen(false); }}
                                         className="flex items-center gap-2.5 w-full px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 transition"
                                     >
                                         <Plus size={13} className="text-[#7877C6]" />
@@ -561,7 +595,9 @@ const CalendarPage: React.FC = () => {
                                     </p>
                                 </div>
                                 <button
-                                    onClick={() => navigate(`/dashboard/design`)}
+                                    onClick={() => navigate(selectedEvent && !selectedEvent.isTask
+                                        ? `/dashboard/design/flyer?eventId=${selectedEvent.id}`
+                                        : "/dashboard/design/flyer")}
                                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#7877C6] text-white text-[10px] font-semibold hover:bg-[#6665b5] transition cursor-pointer"
                                 >
                                     <Sparkles size={10} />
@@ -599,9 +635,12 @@ const CalendarPage: React.FC = () => {
                                 {Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1)
                                     .flatMap(day => eventsByDate[toYMD(year, month, day)] || [])
                                     .length === 0 && (
-                                        <div className="p-8 text-center">
-                                            <Calendar size={28} className="mx-auto text-gray-200 mb-2" />
-                                            <p className="text-sm text-gray-400">No events this month</p>
+                                        <div className="p-8">
+                                            <EmptyState
+                                              icon={Calendar}
+                                              title="No events this month"
+                                              description="Create an event to get started"
+                                            />
                                         </div>
                                     )}
                             </div>
@@ -703,7 +742,9 @@ const CalendarPage: React.FC = () => {
                                 </p>
                             </div>
                             <button
-                                onClick={() => navigate(`/dashboard/design`)}
+                                onClick={() => navigate(selectedEvent && !selectedEvent.isTask
+                                    ? `/dashboard/design/flyer?eventId=${selectedEvent.id}`
+                                    : "/dashboard/design/flyer")}
                                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#7877C6] text-white text-[10px] font-semibold hover:bg-[#6665b5] transition cursor-pointer"
                             >
                                 <Sparkles size={10} />
@@ -711,7 +752,7 @@ const CalendarPage: React.FC = () => {
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+                        <div className="flex-1 overflow-y-auto divide-y divide-gray-50 no-scrollbar">
                             {Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1)
                                 .flatMap(day => {
                                     const ymd = toYMD(year, month, day);
@@ -726,7 +767,7 @@ const CalendarPage: React.FC = () => {
                                                 {new Date(year, month, e._day).toLocaleDateString('en', { weekday: 'short' })}
                                             </p>
                                         </div>
-                                        <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${colorMap[e.id]?.dot}`} />
+                                        {/* <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${colorMap[e.id]?.dot}`} /> */}
                                         <div className="flex-1 min-w-0">
                                             <p className={`text-xs font-medium truncate ${e.isTask && e.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
                                                 {e.name}

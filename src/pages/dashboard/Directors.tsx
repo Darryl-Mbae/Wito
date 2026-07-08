@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Users, Plus, Trash2 } from "lucide-react";
+import { EmptyState } from "../../components/EmptyState";
 import {
   getFirestore,
   doc,
@@ -286,9 +287,12 @@ const Directors: React.FC = () => {
               ))}
               {directors.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
-                    <Users className="mx-auto h-8 w-8 text-gray-200 mb-2" />
-                    <p className="text-sm font-medium text-gray-500">No directors found.</p>
+                  <td colSpan={5} className="px-6 py-8">
+                    <EmptyState
+                      icon={Users}
+                      title="No directors yet"
+                      description="Add team members to collaborate on events"
+                    />
                   </td>
                 </tr>
               )}

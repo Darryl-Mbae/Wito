@@ -10,7 +10,6 @@ import {
 } from "firebase/firestore";
 import type { User } from "firebase/auth";
 import app from "../../config/firebase";
-import appConfig from "../../config/app";
 import { EMAIL_TEMPLATES } from "../emails/templates";
 import { sendTemplatedEmail } from "../emails/sendEmail";
 
@@ -36,16 +35,6 @@ export async function ensureUserProfile(user: User): Promise<void> {
   await setDoc(userRef, profileData);
 
   try {
-    await sendTemplatedEmail(user.email, EMAIL_TEMPLATES.welcomeEmail.id, {
-      email: user.email,
-      company_name: appConfig.name,
-      base_url: window.location.origin,
-    });
-  } catch (err) {
-    console.error("Welcome email failed:", err);
-  }
-
-  try {
     const orgsSnap = await getDocs(collection(db, "organizations"));
     const autoOrgs: { id: string; role: string }[] = [];
 
@@ -69,6 +58,17 @@ export async function ensureUserProfile(user: User): Promise<void> {
       await updateDoc(doc(db, "organizations", orgDoc.id), {
         invitedDirectors: updatedInvites,
       });
+
+      // Send welcome email welcoming them to this organization
+      try {
+        await sendTemplatedEmail(user.email, EMAIL_TEMPLATES.welcomeEmail.id, {
+          email: user.email,
+          company_name: orgData.name || "the organization",
+          base_url: window.location.origin,
+        });
+      } catch (welcomeErr) {
+        console.error("Welcome email to auto-joined org failed:", welcomeErr);
+      }
     }
 
     if (autoOrgs.length > 0) {

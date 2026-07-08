@@ -181,7 +181,6 @@ const EventCard: React.FC<Props> = ({
             )}
             {virtual && (
               <span className="text-[10px] font-semibold bg-[#7877C6]/10 text-[#7877C6] px-1.5 py-0.5 rounded-full flex items-center gap-1 shrink-0">
-                <Video size={9} />
                 {meet ? "Google Meet" : "Online"}
               </span>
             )}
@@ -265,7 +264,6 @@ const EventCard: React.FC<Props> = ({
           )}
           {virtual && (
             <span className="text-[10px] font-semibold bg-white/90 text-[#7877C6] px-2 py-0.5 rounded-full flex items-center gap-1">
-              <Video size={9} />
               {meet ? "Google Meet" : "Online"}
             </span>
           )}

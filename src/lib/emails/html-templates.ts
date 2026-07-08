@@ -1,6 +1,11 @@
 // HTML email templates — {{variable}} placeholders replaced at send time
 
-export type EmailTemplateId = "userInvitation" | "passwordReset" | "welcomeEmail";
+export type EmailTemplateId =
+  | "userInvitation"
+  | "passwordReset"
+  | "welcomeEmail"
+  | "eventCalendarInvite"
+  | "registrationConfirmation";
 
 const BASE_STYLES = `
   margin:0;padding:0;background-color:#f4f4f8;
@@ -41,7 +46,7 @@ function card(inner: string): string {
 function footer(companyName: string, baseUrl: string): string {
   return `<tr>
     <td style="padding:22px 48px;background-color:#fafafa;border-top:1px solid #f0eff8;">
-      <p style="margin:0 0 6px 0;font-size:12px;color:#b0b0c8;">© ${companyName} · All rights reserved</p>
+      <p style="margin:0 0 6px 0;font-size:12px;color:#b0b0c8;">© Wito · All rights reserved</p>
       <p style="margin:0;font-size:12px;color:#b0b0c8;">
         <a href="${baseUrl}/unsubscribe" style="color:#7877C6;text-decoration:none;font-weight:500;">Unsubscribe</a>
         &nbsp;·&nbsp;
@@ -210,12 +215,89 @@ const TEMPLATES: Record<EmailTemplateId, string> = {
       ${footer("{{company_name}}", "{{base_url}}")}
     `)
   ),
+
+  eventCalendarInvite: wrapEmail(
+    "New Event",
+    "You've been invited to a new event on the calendar.",
+    card(`
+      <tr>
+        <td style="padding:36px 48px 0 48px;">
+          <h1 style="margin:0 0 14px 0;font-size:28px;font-weight:700;line-height:1.2;color:#1a1a2e;">
+            New event: <span style="color:#7877C6;">{{event_name}}</span>
+          </h1>
+          <p style="margin:0 0 8px 0;font-size:15px;line-height:1.65;color:#4a4a6a;">
+            <strong>{{date}}</strong> at <strong>{{time}}</strong>
+          </p>
+          <p style="margin:0;font-size:15px;line-height:1.65;color:#4a4a6a;">{{location}}</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:32px 48px;">
+          <table cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="background-color:#7877C6;border-radius:8px;">
+                <a href="{{google_calendar_url}}" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Add to Google Calendar</a>
+              </td>
+            </tr>
+          </table>
+          <p style="margin:16px 0 0;font-size:13px;color:#8888a8;">Or open this link on your phone to add to Apple Calendar: <a href="{{event_url}}" style="color:#7877C6;">View event</a></p>
+        </td>
+      </tr>
+      ${footer("{{company_name}}", "{{base_url}}")}
+    `)
+  ),
+
+  registrationConfirmation: wrapEmail(
+    "Registration Confirmed",
+    "Thank you for registering for {{event_name}}.",
+    card(`
+      <tr>
+        <td style="padding:36px 48px 0 48px;">
+          <h1 style="margin:0 0 14px 0;font-size:28px;font-weight:700;line-height:1.2;color:#1a1a2e;">
+            You're <span style="color:#7877C6;">registered!</span>
+          </h1>
+          <p style="margin:0 0 20px 0;font-size:15px;line-height:1.65;color:#4a4a6a;">
+            Hi <strong>{{attendee_name}}</strong>, thank you for registering. Here are your event details:
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f8fafc;border-radius:12px;border:1px solid #f0eff8;">
+            <tr>
+              <td style="padding:20px 24px;">
+                <p style="margin:0 0 4px 0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#7877C6;">Event</p>
+                <p style="margin:0 0 16px 0;font-size:18px;font-weight:700;color:#1a1a2e;">{{event_name}}</p>
+                <p style="margin:0 0 8px 0;font-size:14px;color:#4a4a6a;"><strong>Date:</strong> {{date}}</p>
+                <p style="margin:0 0 8px 0;font-size:14px;color:#4a4a6a;"><strong>Time:</strong> {{time}}</p>
+                <p style="margin:0 0 8px 0;font-size:14px;color:#4a4a6a;"><strong>Location:</strong> {{location}}</p>
+                {{optional_details}}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:32px 48px;">
+          <table cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="background-color:#7877C6;border-radius:8px;">
+                <a href="{{google_calendar_url}}" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Add to Google Calendar</a>
+              </td>
+            </tr>
+          </table>
+          <p style="margin:16px 0 0;font-size:13px;color:#8888a8;">
+            <a href="{{event_url}}" style="color:#7877C6;text-decoration:none;font-weight:500;">View event page →</a>
+          </p>
+        </td>
+      </tr>
+      ${footer("{{company_name}}", "{{base_url}}")}
+    `)
+  ),
 };
 
 export const EMAIL_SUBJECTS: Record<EmailTemplateId, string> = {
   userInvitation: "{{company_name}} invited you to join their workspace",
   passwordReset: "Reset your password",
   welcomeEmail: "Welcome to {{company_name}}",
+  eventCalendarInvite: "New event: {{event_name}}",
+  registrationConfirmation: "You're registered for {{event_name}}",
 };
 
 export function renderEmailTemplate(
@@ -224,6 +306,10 @@ export function renderEmailTemplate(
 ): { html: string; subject: string } {
   const raw = TEMPLATES[templateId];
   const subjectRaw = EMAIL_SUBJECTS[templateId];
+
+  if (!raw || !subjectRaw) {
+    throw new Error(`Unknown email template: ${templateId}`);
+  }
 
   const interpolate = (text: string) =>
     text.replace(/\{\{(\w+)\}\}/g, (_, key: string) => variables[key] ?? "");

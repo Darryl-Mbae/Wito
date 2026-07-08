@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Download, Trash2, ExternalLink, X } from "lucide-react";
+import { Download, Trash2, ExternalLink, X, ImageIcon } from "lucide-react";
+import { EmptyState } from "./EmptyState";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -222,8 +223,8 @@ const FlyersSection: React.FC<{
     flyers: Flyer[];
     orgId: string;
     onDelete: (id: string) => void;
-    onCreateFlyer: () => void;
-}> = ({ flyers, orgId, onDelete, onCreateFlyer }) => {
+    onSwitchToTemplates: () => void;
+}> = ({ flyers, orgId, onDelete, onSwitchToTemplates }) => {
     const [activeFilter, setActiveFilter] = useState<FilterType>("post");
     const [lightbox, setLightbox] = useState<{ flyer: Flyer; blobUrl: string } | null>(null);
 
@@ -263,12 +264,12 @@ const FlyersSection: React.FC<{
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-12 border-2 border-dashed border-gray-100 rounded-2xl">
-                    <p className="text-xs text-gray-400 mb-4">No {activeFilter}s found.</p>
-                    <button onClick={onCreateFlyer} className="text-xs text-[#7877C6] font-medium hover:underline">
-                        Create one now
-                    </button>
-                </div>
+                <EmptyState
+                    icon={ImageIcon}
+                    title={`No ${activeFilter}s yet`}
+                    description="Create your first flyer to get started"
+                    action={{ label: "Go to templates", onClick: onSwitchToTemplates }}
+                />
             )}
 
             {/* Lightbox */}

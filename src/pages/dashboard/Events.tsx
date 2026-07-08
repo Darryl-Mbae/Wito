@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useNavigate, useOutletContext, useLocation } from "react-router-dom";
 import {
   Plus,
   CalendarX,
@@ -11,6 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { EmptyState } from "../../components/EmptyState";
 import {
   getFirestore,
   collection,
@@ -53,6 +54,19 @@ const Events: React.FC = () => {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [deletingEvent, setDeletingEvent] = useState<Event | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const [initialDate, setInitialDate] = useState("");
+
+  useEffect(() => {
+    if (location.state && (location.state as any).openCreateModal) {
+      const stateData = location.state as any;
+      if (stateData.date) {
+        setInitialDate(stateData.date);
+      }
+      setShowModal(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
 
   // ── Multi-select ──
@@ -93,7 +107,7 @@ const Events: React.FC = () => {
     setSaving(true);
     try {
       const db = getFirestore(app);
-      await addDoc(collection(db, "events"), {
+      const ref = await addDoc(collection(db, "events"), {
         name: form.name,
         date: form.date,
         time: form.time,
@@ -105,8 +119,25 @@ const Events: React.FC = () => {
         orgId: activeOrg.id,
         createdBy: currentUser.uid,
         createdAt: serverTimestamp(),
-
       });
+
+      const calendarEvent = {
+        id: ref.id,
+        name: form.name,
+        date: form.date,
+        time: form.time,
+        location: form.location,
+        description: form.description || null,
+      };
+
+      const { openGoogleCalendar, addToAppleCalendar } = await import("../../utils/calendarLinks");
+      if (form.addToGoogleCalendar) openGoogleCalendar(calendarEvent);
+      if (form.addToAppleCalendar) addToAppleCalendar(calendarEvent);
+      if (form.inviteDirectorsToCalendar) {
+        const { inviteDirectorsToEventCalendar } = await import("../../utils/directorCalendarInvite");
+        await inviteDirectorsToEventCalendar(activeOrg.id, calendarEvent);
+      }
+
       setShowModal(false);
     } catch (err) {
       console.error("Error creating event:", err);
@@ -332,19 +363,12 @@ const Events: React.FC = () => {
             </div>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <CalendarX size={36} className="text-gray-200 mb-3" />
-            <p className="text-gray-500 text-sm font-medium">
-              {search ? "No events match your search" : "No events yet"}
-            </p>
-            <p className="text-gray-400 text-xs mt-1">
-              {search
-                ? "Try a different keyword"
-                : tab === "Mine"
-                  ? "You haven't created any events."
-                  : "No events for this organization."}
-            </p>
-          </div>
+          <EmptyState
+            icon={CalendarX}
+            title={search ? "No events match your search" : tab === "Mine" ? "No events yet" : "No events for this organization"}
+            description={search ? "Try a different keyword" : tab === "Mine" ? "Create your first event to get started" : ""}
+            action={tab === "Mine" && !search ? { label: "Create event", onClick: () => setShowModal(true) } : undefined}
+          />
         ) : viewMode === "grid" ? (
           <div className="pb-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filtered.map((event) => (
@@ -389,7 +413,7 @@ const Events: React.FC = () => {
             {filtered.map((event) => (
               <div
                 key={event.id}
-                className="relative  hover:mt-2 "
+                className="relative"
                 onClick={selectMode ? () => toggleSelect(event.id) : undefined}
               >
                 {/* Selection indicator for list */}
@@ -445,9 +469,16 @@ const Events: React.FC = () => {
       {/* Create modal */}
       {showModal && (
         <CreateEventModal
-          onClose={() => setShowModal(false)}
-          onSubmit={handleCreate}
+          onClose={() => {
+            setShowModal(false);
+            setInitialDate("");
+          }}
+          onSubmit={async (form) => {
+            await handleCreate(form);
+            setInitialDate("");
+          }}
           saving={saving}
+          initialDate={initialDate}
         />
       )}
 

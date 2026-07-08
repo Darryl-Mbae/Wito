@@ -10,13 +10,15 @@ import {
   Check,
   LogOut,
   Settings,
+  Coins,
+  Store,
 } from "lucide-react";
 import {
   getAuth,
   onAuthStateChanged,
   type User as AuthUser,
 } from "firebase/auth";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, onSnapshot } from "firebase/firestore";
 import app from "../config/firebase";
 
 export interface Organization {
@@ -50,6 +52,7 @@ export function Header({
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [userPopoverOpen, setUserPopoverOpen] = useState(false);
+  const [credits, setCredits] = useState<number | null>(null);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const userPopoverRef = useRef<HTMLDivElement>(null);
@@ -107,6 +110,21 @@ export function Header({
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Real-time credits listener for the current user
+  useEffect(() => {
+    const auth = getAuth(app);
+    const currentUser = auth.currentUser;
+    if (!currentUser) { setCredits(null); return; }
+    
+    const db = getFirestore(app);
+    const unsub = onSnapshot(doc(db, "users", currentUser.uid), (snap) => {
+      if (snap.exists()) {
+        setCredits(snap.data().credits ?? 0);
+      }
+    });
+    return () => unsub();
   }, []);
 
   useEffect(() => {
@@ -190,6 +208,8 @@ export function Header({
     .map((n: string) => n[0])
     .join("")
     .toUpperCase();
+
+
 
   return (
     <header
@@ -320,19 +340,19 @@ export function Header({
             onClick={() => setUserPopoverOpen((v) => !v)}
             className="flex items-center gap-2 rounded-xl p-1 hover:bg-gray-50 transition cursor-pointer"
           >
-            {user?.photoURL ? (
+            {/* {user?.photoURL && user?.photoURL !== "" ? (
               <img
                 src={user.photoURL}
                 alt="Avatar"
                 className="h-8 w-8 rounded-full object-cover"
               />
-            ) : (
+            ) : ( */}
               <div className="flex items-center justify-center h-8 w-8 rounded-full bg-[#7877C6]">
                 <span className="text-white font-semibold text-sm">
                   {initials}
                 </span>
               </div>
-            )}
+         
           </button>
 
           {/* User details popover */}
@@ -341,19 +361,19 @@ export function Header({
               {/* Profile header */}
               <div className="px-4 py-3.5 border-b border-gray-100">
                 <div className="flex items-center gap-3">
-                  {user.photoURL ? (
+                  {/* {user.photoURL ? (
                     <img
                       src={user.photoURL}
                       alt="Avatar"
                       className="h-10 w-10 rounded-full object-cover flex-shrink-0"
                     />
-                  ) : (
+                  ) : ( */}
                     <div className="flex items-center justify-center h-10 w-10 rounded-full bg-[#7877C6] flex-shrink-0">
                       <span className="text-white font-semibold text-sm">
                         {initials}
                       </span>
                     </div>
-                  )}
+                  {/* )} */}
                   <div className="min-w-0">
                     <p className="text-[13.5px] font-semibold text-gray-800 truncate">
                       {user.displayName || "User"}
@@ -369,18 +389,33 @@ export function Header({
               </div>
 
               {/* Details */}
-              <div className="px-4 py-2.5 border-b border-gray-100 space-y-2">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-[12px] text-gray-500 truncate">
-                    {user.email || "—"}
-                  </span>
-                </div>
+              <div className="px-4 py-2.5 border-b border-gray-100 space-y-1.5">
+                <span className="block text-[12px] text-gray-500 truncate">
+                  {user.email || "—"}
+                </span>
                 {createdAt && (
-                  <div className="flex items-center gap-2.5">
-
-                    <span className="text-[12px] text-gray-500">
-                      Joined {createdAt}
-                    </span>
+                  <span className="block text-[12px] text-gray-500">
+                    Joined {createdAt}
+                  </span>
+                )}
+                {/* Credits balance */}
+                {credits !== null && (
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center gap-1.5">
+                      <Coins size={13} className="text-amber-400" />
+                      <span className="text-[12px] font-semibold text-gray-700 tabular-nums">
+                        {credits.toLocaleString()} credits
+                      </span>
+                    </div>
+                    <button
+                      // onClick={() => {
+                      //   setUserPopoverOpen(false);
+                      //   navigate("/dashboard/design/marketplace");
+                      // }}
+                      className="text-[11px] font-medium text-[#7877C6] hover:underline cursor-pointer"
+                    >
+                      Withdraw
+                    </button>
                   </div>
                 )}
               </div>
@@ -395,9 +430,17 @@ export function Header({
                   className="flex w-full items-center gap-2.5 px-4 py-2 hover:bg-gray-50 transition cursor-pointer"
                 >
                   <Settings size={13} className="text-gray-400" />
-                  <span className="text-[13px] text-gray-600">
-                    Account settings
-                  </span>
+                  <span className="text-[13px] text-gray-600">Account settings</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setUserPopoverOpen(false);
+                    navigate("/dashboard/design/marketplace");
+                  }}
+                  className="flex w-full items-center gap-2.5 px-4 py-2 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  <Store size={13} className="text-gray-400" />
+                  <span className="text-[13px] text-gray-600">Template store</span>
                 </button>
                 <button
                   onClick={() => {
@@ -406,10 +449,7 @@ export function Header({
                   }}
                   className="flex w-full items-center gap-2.5 px-4 py-2 hover:bg-red-50 transition cursor-pointer group"
                 >
-                  <LogOut
-                    size={13}
-                    className="text-gray-400 group-hover:text-red-400 transition"
-                  />
+                  <LogOut size={13} className="text-gray-400 group-hover:text-red-400 transition" />
                   <span className="text-[13px] text-gray-600 group-hover:text-red-500 transition">
                     Logout
                   </span>

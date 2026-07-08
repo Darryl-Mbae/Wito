@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Plus, Trash2, CheckCircle2, Circle, Globe, Lock, Gem } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, Circle, Globe, Lock, Gem, Calendar } from "lucide-react";
 import {
   getFirestore,
   collection,
@@ -17,6 +17,7 @@ import { getAuth } from "firebase/auth";
 import app from "../../config/firebase";
 import { PremiumFeature } from "../../components/PremiumFeature";
 import { type DashboardContextType } from "../Dashboard";
+import { getAssigneeColor } from "../../utils/userColors";
 
 type TaskStatus = "todo" | "done";
 
@@ -29,6 +30,7 @@ interface Task {
   createdBy: string;
   createdAt: any;
   visibility?: "public" | "private";
+  dueDate?: string;
 }
 
 const TasksPage: React.FC = () => {
@@ -41,6 +43,7 @@ const TasksPage: React.FC = () => {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskAssignee, setNewTaskAssignee] = useState("");
   const [newTaskVisibility, setNewTaskVisibility] = useState<"public" | "private">("public");
+  const [newTaskDueDate, setNewTaskDueDate] = useState("");
   const [activeTab, setActiveTab] = useState<TaskStatus>("todo");
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
   const [showVisibilityDropdown, setShowVisibilityDropdown] = useState(false);
@@ -139,10 +142,12 @@ const TasksPage: React.FC = () => {
         createdBy: currentUser.uid,
         createdAt: serverTimestamp(),
         visibility: newTaskVisibility,
+        dueDate: newTaskDueDate || null,
       });
       setNewTaskTitle("");
       setNewTaskAssignee("");
       setNewTaskVisibility("public");
+      setNewTaskDueDate("");
       setShowAssigneeDropdown(false);
       setShowVisibilityDropdown(false);
     } catch (err) {
@@ -188,6 +193,39 @@ const TasksPage: React.FC = () => {
   const todoTasks = tasks.filter((t) => t.status === "todo");
   const doneTasks = tasks.filter((t) => t.status === "done");
   const displayedTasks = activeTab === "todo" ? todoTasks : doneTasks;
+
+  const formatDueDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const taskDate = new Date(dateStr);
+    taskDate.setHours(0, 0, 0, 0);
+
+    const diffTime = taskDate.getTime() - today.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Tomorrow";
+    if (diffDays === -1) return "Yesterday";
+
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: date.getFullYear() !== today.getFullYear() ? "numeric" : undefined
+    });
+  };
+
+  const isOverdue = (dateStr: string, status: TaskStatus) => {
+    if (status === "done") return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const taskDate = new Date(dateStr);
+    taskDate.setHours(0, 0, 0, 0);
+    return taskDate.getTime() < today.getTime();
+  };
 
   return (
     <div className="w-full lg:w-[70%] h-full flex flex-col pb-12 space-y-4">
@@ -240,21 +278,26 @@ const TasksPage: React.FC = () => {
             {/* Assignee */}
             <div className="relative">
               {newTaskAssignee ? (
-                <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1.5 rounded-lg border border-gray-100">
-                  <div className="h-4 w-4 rounded-full bg-[#7877C6]/10 flex items-center justify-center shrink-0">
-                    <span className="text-[9px] font-bold text-[#7877C6]">
-                      {newTaskAssignee.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <span className="text-xs font-medium text-gray-600 max-w-[80px] truncate">{newTaskAssignee}</span>
-                  <button
-                    type="button"
-                    onClick={() => setNewTaskAssignee("")}
-                    className="text-gray-400 hover:text-red-500"
-                  >
-                    <Trash2 size={11} />
-                  </button>
-                </div>
+                (() => {
+                  const colors = getAssigneeColor(newTaskAssignee);
+                  return (
+                    <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1.5 rounded-lg border border-gray-100">
+                      <div className={`h-4 w-4 rounded-full ${colors.bg} flex items-center justify-center shrink-0`}>
+                        <span className={`text-[9px] font-bold ${colors.text}`}>
+                          {newTaskAssignee.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <span className="text-xs font-medium text-gray-600 max-w-[80px] truncate">{newTaskAssignee}</span>
+                      <button
+                        type="button"
+                        onClick={() => setNewTaskAssignee("")}
+                        className="text-gray-400 hover:text-red-500"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+                  );
+                })()
               ) : (
                 <button
                   type="button"
@@ -284,11 +327,17 @@ const TasksPage: React.FC = () => {
                         }}
                         className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition"
                       >
-                        <div className="h-5 w-5 rounded-full bg-[#7877C6]/10 flex items-center justify-center shrink-0">
-                          <span className="text-[10px] font-bold text-[#7877C6]">
-                            {(director.name || director.email).charAt(0).toUpperCase()}
-                          </span>
-                        </div>
+                        {(() => {
+                          const dirName = director.name || director.email;
+                          const colors = getAssigneeColor(dirName);
+                          return (
+                            <div className={`h-5 w-5 rounded-full ${colors.bg} flex items-center justify-center shrink-0`}>
+                              <span className={`text-[10px] font-bold ${colors.text}`}>
+                                {dirName.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          );
+                        })()}
                         <span className="truncate">{director.name || director.email}</span>
                       </button>
                     ))}
@@ -353,6 +402,17 @@ const TasksPage: React.FC = () => {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Due Date Picker */}
+            <div className="relative flex items-center">
+              <Calendar size={12} className="absolute left-2.5 text-gray-400 pointer-events-none" />
+              <input
+                type="date"
+                value={newTaskDueDate}
+                onChange={(e) => setNewTaskDueDate(e.target.value)}
+                className="pl-8 pr-2.5 h-8 rounded-lg text-xs font-medium text-gray-500 bg-gray-50 border border-gray-100 hover:bg-[#7877C6]/10 hover:text-[#7877C6] transition outline-none cursor-pointer"
+              />
             </div>
 
             {/* Spacer + Submit */}
@@ -421,20 +481,40 @@ const TasksPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Assignee pill — below title */}
-                  {task.assignee && (
-                    <div className={`mt-1.5 inline-flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 ${task.status === "done" ? "opacity-50" : ""
-                      }`}>
-                      <div className={`h-4 w-4 rounded-full flex items-center justify-center shrink-0 ${task.status === "done" ? "bg-gray-200" : "bg-[#7877C6]/10"
-                        }`}>
-                        <span className={`text-[9px] font-bold ${task.status === "done" ? "text-gray-500" : "text-[#7877C6]"
+                  {/* Assignee & Due Date row */}
+                  <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                    {task.assignee && (() => {
+                      return (
+                        <div className={`inline-flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 ${task.status === "done" ? "opacity-50" : ""
                           }`}>
-                          {task.assignee.charAt(0).toUpperCase()}
-                        </span>
+                          {/* <div className={`h-4 w-4 rounded-full flex items-center justify-center shrink-0 ${task.status === "done" ? "bg-gray-200" : colors.bg
+                            }`}>
+                            <span className={`text-[9px] font-bold ${task.status === "done" ? "text-gray-500" : colors.text
+                              }`}>
+                              {task.assignee.charAt(0).toUpperCase()}
+                            </span>
+                          </div> */}
+                          <span className="text-xs font-medium text-gray-600">{task.assignee}</span>
+                        </div>
+                      );
+                    })()}
+
+                    {task.dueDate && (
+                      <div className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 border ${task.status === "done"
+                        ? "bg-gray-50 border-gray-100 text-gray-400 opacity-50"
+                        : isOverdue(task.dueDate, task.status)
+                          ? "bg-red-50 border-red-100 text-red-600 font-semibold"
+                          : "bg-gray-50 border-gray-100 text-gray-500"
+                        }`}>
+                        <Calendar size={11} className={
+                          task.status !== "done" && isOverdue(task.dueDate, task.status)
+                            ? "text-red-500"
+                            : "text-gray-400"
+                        } />
+                        <span className="text-xs font-medium">{formatDueDate(task.dueDate)}</span>
                       </div>
-                      <span className="text-xs font-medium text-gray-600">{task.assignee}</span>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 {/* Delete — always visible on mobile, hover on desktop */}

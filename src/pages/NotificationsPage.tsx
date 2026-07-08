@@ -1,7 +1,22 @@
-import React, { useState } from "react";
-import { Trash2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Trash2, Coins, Bell, Megaphone, CreditCard } from "lucide-react";
+import { useOutletContext } from "react-router-dom";
+import type { DashboardContextType } from "./Dashboard";
+import {
+    getFirestore,
+    collection,
+    query,
+    orderBy,
+    onSnapshot,
+    doc,
+    updateDoc,
+    deleteDoc,
+    addDoc,
+    serverTimestamp,
+} from "firebase/firestore";
+import app from "../config/firebase";
 
-type NotifCategory = "subscription" | "update" | "announcement";
+type NotifCategory = "subscription" | "update" | "announcement" | "sale";
 
 interface Notification {
     id: string;
@@ -13,89 +28,135 @@ interface Notification {
     read: boolean;
 }
 
-const MOCK: Notification[] = [
+// ─── Category meta ────────────────────────────────────────────────────────────
+
+const CATEGORY_META: Record<NotifCategory, { label: string; color: string; icon: React.ReactNode }> = {
+    subscription: { label: "Plans & Billing", color: "text-[#7877C6]", icon: <CreditCard size={12} /> },
+    update:       { label: "What's new",      color: "text-[#1D9E75]", icon: <Bell size={12} /> },
+    announcement: { label: "Announcement",    color: "text-gray-400",  icon: <Megaphone size={12} /> },
+    sale:         { label: "Sale",            color: "text-amber-500", icon: <Coins size={12} /> },
+};
+
+const FROM_COLOR: Record<string, string> = {
+    Billing:       "bg-[#7877C6]",
+    System:        "bg-slate-400",
+    "What's new":  "bg-[#1D9E75]",
+    Marketplace:   "bg-amber-400",
+};
+
+function fromColor(from: string) {
+    return FROM_COLOR[from] ?? "bg-gray-300";
+}
+
+function formatTime(raw: string): string {
+    try {
+        const d = new Date(raw);
+        const now = new Date();
+        const diffMs = now.getTime() - d.getTime();
+        const diffDays = Math.floor(diffMs / 86_400_000);
+        if (diffDays === 0) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        if (diffDays < 7)  return d.toLocaleDateString([], { weekday: "short" });
+        return d.toLocaleDateString([], { month: "short", day: "numeric" });
+    } catch {
+        return raw;
+    }
+}
+
+// ─── Seed helper (dev / first-run) ────────────────────────────────────────────
+
+const SEED: Omit<Notification, "id">[] = [
     {
-        id: "1",
         category: "subscription",
         from: "Billing",
         subject: "Pro plan is now available",
         preview: "Unlock unlimited members, advanced analytics, and priority support for your organizations.",
-        time: "9:41 AM",
+        time: new Date().toISOString(),
         read: false,
     },
     {
-        id: "2",
         category: "announcement",
         from: "System",
         subject: "Scheduled maintenance — June 12",
         preview: "The platform will be unavailable for approximately 30 minutes starting at 02:00 UTC.",
-        time: "8:02 AM",
+        time: new Date(Date.now() - 3_600_000).toISOString(),
         read: false,
     },
     {
-        id: "3",
         category: "update",
         from: "What's new",
         subject: "Event check-in is here",
         preview: "Members can now check in to events using a QR code. Generate codes from your event detail page.",
-        time: "Jun 5",
-        read: false,
-    },
-    {
-        id: "4",
-        category: "subscription",
-        from: "Billing",
-        subject: "Your trial ends in 3 days",
-        preview: "Add a payment method to keep access to all features after your trial period ends.",
-        time: "Jun 4",
-        read: true,
-    },
-    {
-        id: "5",
-        category: "update",
-        from: "What's new",
-        subject: "Redesigned member profiles",
-        preview: "Member profiles now show roles, joined date, and event attendance in a cleaner layout.",
-        time: "Jun 1",
-        read: true,
-    },
-    {
-        id: "6",
-        category: "announcement",
-        from: "System",
-        subject: "New data export options",
-        preview: "You can now export member lists and event attendance as CSV or PDF from your dashboard.",
-        time: "May 28",
+        time: new Date(Date.now() - 86_400_000 * 3).toISOString(),
         read: true,
     },
 ];
 
-const fromColor: Record<string, string> = {
-    Billing: "bg-[#7877C6]",
-    System: "bg-slate-400",
-    "What's new": "bg-[#1D9E75]",
-};
-
 export function NotificationsPage() {
-    const [notifications, setNotifications] = useState<Notification[]>(MOCK);
+    const { activeOrg } = useOutletContext<DashboardContextType>();
+    const orgId = activeOrg?.id;
+
+    const [notifications, setNotifications] = useState<Notification[]>([]);
     const [selected, setSelected] = useState<string | null>(null);
+    const [seeded, setSeeded] = useState(false);
+
+    // ── Real-time listener ──────────────────────────────────────────────────
+    useEffect(() => {
+        if (!orgId) return;
+        const db = getFirestore(app);
+        const q = query(
+            collection(db, "organizations", orgId, "notifications"),
+            orderBy("createdAt", "desc")
+        );
+        const unsub = onSnapshot(q, async (snap) => {
+            if (snap.empty && !seeded) {
+                // Seed starter notifications on first load
+                setSeeded(true);
+                for (const n of SEED) {
+                    await addDoc(collection(db, "organizations", orgId, "notifications"), {
+                        ...n,
+                        createdAt: serverTimestamp(),
+                    });
+                }
+                return;
+            }
+            setNotifications(
+                snap.docs.map((d) => {
+                    const data = d.data();
+                    return {
+                        id: d.id,
+                        category: data.category ?? "announcement",
+                        from: data.from ?? "System",
+                        subject: data.subject ?? "",
+                        preview: data.preview ?? "",
+                        time: data.createdAt?.toDate?.()?.toISOString?.() ?? data.time ?? "",
+                        read: data.read ?? false,
+                    } as Notification;
+                })
+            );
+        });
+        return () => unsub();
+    }, [orgId, seeded]);
 
     const unread = notifications.filter((n) => !n.read).length;
 
-    const open = (id: string) => {
+    const open = async (id: string) => {
         setSelected(id);
-        setNotifications((prev) =>
-            prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-        );
+        const notif = notifications.find((n) => n.id === id);
+        if (!notif || notif.read || !orgId) return;
+        const db = getFirestore(app);
+        await updateDoc(doc(db, "organizations", orgId, "notifications", id), { read: true });
     };
 
-    const dismiss = (e: React.MouseEvent, id: string) => {
+    const dismiss = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
-        setNotifications((prev) => prev.filter((n) => n.id !== id));
         if (selected === id) setSelected(null);
+        if (!orgId) return;
+        const db = getFirestore(app);
+        await deleteDoc(doc(db, "organizations", orgId, "notifications", id));
     };
 
     const selectedNotif = notifications.find((n) => n.id === selected) ?? null;
+    const meta = selectedNotif ? CATEGORY_META[selectedNotif.category] : null;
 
     return (
         <div className="space-y-5">
@@ -125,10 +186,9 @@ export function NotificationsPage() {
                         <div
                             key={n.id}
                             onClick={() => open(n.id)}
-                            className={`group relative flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-colors ${selected === n.id
-                                ? "bg-[rgba(120,119,198,0.06)]"
-                                : "hover:bg-gray-50/70"
-                                }`}
+                            className={`group relative flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-colors ${
+                                selected === n.id ? "bg-[rgba(120,119,198,0.06)]" : "hover:bg-gray-50/70"
+                            }`}
                         >
                             {/* Unread dot */}
                             {!n.read && (
@@ -136,8 +196,8 @@ export function NotificationsPage() {
                             )}
 
                             {/* Avatar */}
-                            <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white mt-0.5 ${fromColor[n.from] ?? "bg-gray-300"}`}>
-                                {n.from[0]}
+                            <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white mt-0.5 ${fromColor(n.from)}`}>
+                                {n.category === "sale" ? <Coins size={14} /> : n.from[0]}
                             </div>
 
                             {/* Text */}
@@ -146,7 +206,7 @@ export function NotificationsPage() {
                                     <span className={`text-[13px] truncate ${n.read ? "font-normal text-gray-600" : "font-semibold text-gray-900"}`}>
                                         {n.from}
                                     </span>
-                                    <span className="text-[11.5px] text-gray-400 flex-shrink-0">{n.time}</span>
+                                    <span className="text-[11.5px] text-gray-400 flex-shrink-0">{formatTime(n.time)}</span>
                                 </div>
                                 <p className={`text-[12.5px] truncate ${n.read ? "text-gray-400" : "text-gray-700"}`}>
                                     {n.subject}
@@ -168,21 +228,17 @@ export function NotificationsPage() {
                 </div>
 
                 {/* Right — reading pane */}
-                {selectedNotif && (
+                {selectedNotif && meta && (
                     <div className="flex-1 flex flex-col px-8 py-6 min-w-0">
-                        <p className={`text-[11px] font-semibold uppercase tracking-widest mb-4 ${selectedNotif.category === "subscription"
-                            ? "text-[#7877C6]"
-                            : selectedNotif.category === "update"
-                                ? "text-[#1D9E75]"
-                                : "text-gray-400"
-                            }`}>
-                            {selectedNotif.category === "subscription" ? "Plans & Billing" : selectedNotif.category === "update" ? "What's new" : "Announcement"}
+                        <p className={`text-[11px] font-semibold uppercase tracking-widest mb-4 flex items-center gap-1.5 ${meta.color}`}>
+                            {meta.icon}
+                            {meta.label}
                         </p>
                         <h3 className="text-[17px] font-semibold text-gray-900 leading-snug mb-1">
                             {selectedNotif.subject}
                         </h3>
                         <p className="text-[12px] text-gray-400 mb-6">
-                            From <span className="text-gray-600 font-medium">{selectedNotif.from}</span> · {selectedNotif.time}
+                            From <span className="text-gray-600 font-medium">{selectedNotif.from}</span> · {formatTime(selectedNotif.time)}
                         </p>
                         <p className="text-[13.5px] text-gray-600 leading-relaxed">
                             {selectedNotif.preview}

@@ -45,7 +45,7 @@ export default function CreateClub() {
       const db = getFirestore(app);
       const user = auth.currentUser;
 
-      if (!user) throw new Error("Not authenticated");
+      if (!user || !user.email) throw new Error("Not authenticated or missing email");
 
       // Each director gets their own unique token — no shared org-level token
       const directorsWithTokens = directors.map((dir) => ({
@@ -68,6 +68,21 @@ export default function CreateClub() {
       await updateDoc(userRef, {
         organization: arrayUnion({ id: newOrgRef.id, role: "director" })
       });
+
+      // Send welcome email to the creator
+      try {
+        await sendEmail(
+          user.email,
+          EMAIL_TEMPLATES.welcomeEmail.id,
+          {
+            email: user.email,
+            company_name: clubName,
+            base_url: window.location.origin,
+          }
+        );
+      } catch (welcomeErr) {
+        console.error("Failed to send welcome email to creator:", welcomeErr);
+      }
 
       // 3. Send each director their own unique link
       if (directorsWithTokens.length > 0) {
