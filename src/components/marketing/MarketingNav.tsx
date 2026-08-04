@@ -28,8 +28,8 @@ export default function MarketingNav() {
     >
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 lg:px-8" aria-label="Main">
         <Link to="/" className="flex items-center gap-2.5">
-          <img src="/images/logo.png" alt="Rada" className="h-6 w-auto" />
-          <span className="text-lg font-bold text-gray-900 tracking-tight">Rada</span>
+          <img src="/images/logo.png" alt="Wito" className="h-6 w-auto" />
+          <span className="text-lg font-bold text-gray-900 tracking-tight">Wito</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-8">

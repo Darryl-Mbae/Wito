@@ -96,6 +96,7 @@ export const PremiumFeature: React.FC<PremiumFeatureProps> = ({
         className={`relative group ${className}`} 
         onClickCapture={handleClickCapture}
       >
+        
         {children}
         
         {/* Hover Tooltip for Desktop */}

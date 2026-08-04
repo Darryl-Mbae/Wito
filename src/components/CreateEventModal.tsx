@@ -10,9 +10,7 @@ type EventForm = {
   dresscode: string;
   description: string;
   imageURL: string;
-  addToGoogleCalendar?: boolean;
-  addToAppleCalendar?: boolean;
-  inviteDirectorsToCalendar?: boolean;
+
 };
 
 const EMPTY_FORM: EventForm = {
@@ -133,9 +131,6 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving, initialD
       dresscode: toggles.dresscode ? form.dresscode : "",
       description: toggles.description ? form.description : "",
       imageURL: toggles.imageURL ? form.imageURL : "",
-      addToGoogleCalendar: calendarOpts.google,
-      addToAppleCalendar: calendarOpts.apple,
-      inviteDirectorsToCalendar: calendarOpts.inviteDirectors,
     });
   };
 
@@ -348,35 +343,7 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving, initialD
             </div>
           </div>
 
-          {/* Calendar sync */}
-          <div className="space-y-3 pt-2 border-t border-gray-100">
-            <p className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <Calendar size={14} className="text-[#7877C6]" />
-              Calendar
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {[
-                { key: "google" as const, label: "Google Calendar" },
-                { key: "apple" as const, label: "Apple Calendar (.ics)" },
-                { key: "inviteDirectors" as const, label: "Email invite to directors" },
-              ].map(({ key, label }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setCalendarOpts((o) => ({ ...o, [key]: !o[key] }))}
-                  className={`flex items-center gap-2 text-sm text-left px-3 py-2.5 rounded-[8px] border transition cursor-pointer ${calendarOpts[key]
-                      ? "border-[#7877C6]/40 bg-[#7877C6]/5 text-gray-900"
-                      : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                    }`}
-                >
-                  <span className={`w-4 h-4 rounded border flex items-center justify-center transition shrink-0 ${calendarOpts[key] ? "bg-[#7877C6] border-[#7877C6]" : "border-gray-300"}`}>
-                    {calendarOpts[key] && <Check size={10} className="text-white" />}
-                  </span>
-                  <span className="leading-tight">{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">

@@ -8,6 +8,7 @@ export type { SavedTemplate, TemplateMethod };
 // ─── Layout preset → filter category ─────────────────────────────────────────
 
 type FilterType = "post" | "story" | "flyer";
+type ActiveFilter = "all" | FilterType;
 
 const PRESET_FILTER: Record<string, FilterType> = {
     "ig-portrait": "post",
@@ -19,14 +20,20 @@ const PRESET_FILTER: Record<string, FilterType> = {
 const ASPECT: Record<FilterType, string> = {
     post: "4 / 5",
     story: "9 / 16",
-    flyer: "794 / 1123",
+    flyer: "1",
 };
 
-const FILTER_LABELS: { id: FilterType; label: string }[] = [
+const FILTER_LABELS: { id: ActiveFilter; label: string }[] = [
+    { id: "all", label: "All" },
     { id: "post", label: "Post" },
     { id: "story", label: "Story" },
-    { id: "flyer", label: "Flyer" },
+    { id: "flyer", label: "Square" },
 ];
+
+function getTemplateFilterType(template: SavedTemplate): FilterType {
+    const preset = (template as any).layoutPreset as string | undefined;
+    return preset ? (PRESET_FILTER[preset] ?? "flyer") : "post";
+}
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -183,15 +190,15 @@ const TemplateCard: React.FC<{
 // ─── Section ──────────────────────────────────────────────────────────────────
 
 const TemplatesSection: React.FC<Props> = ({ templates, onAddNew, onEdit, onDelete, onMakeFlyer }) => {
-    const [activeFilter, setActiveFilter] = useState<FilterType>("post");
+    const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
 
-    const filtered = templates.filter((t) => {
-        const preset = (t as any).layoutPreset as string | undefined;
-        return preset ? PRESET_FILTER[preset] === activeFilter : activeFilter === "post";
-    });
+    const filtered = activeFilter === "all"
+        ? templates
+        : templates.filter((t) => getTemplateFilterType(t) === activeFilter);
 
-    // Add card aspect matches current filter so it lines up naturally in the grid
-    const addCardAspect = ASPECT[activeFilter];
+    // Add card aspect matches current filter so it lines up naturally in the grid.
+    // Under "All" there's no single shape to match, so default to square.
+    const addCardAspect = activeFilter === "all" ? ASPECT.flyer : ASPECT[activeFilter];
 
     return (
         <div>
@@ -230,7 +237,7 @@ const TemplatesSection: React.FC<Props> = ({ templates, onAddNew, onEdit, onDele
                     <TemplateCard
                         key={t.id}
                         template={t}
-                        filterType={activeFilter}
+                        filterType={activeFilter === "all" ? getTemplateFilterType(t) : activeFilter}
                         onEdit={() => onEdit(t.id)}
                         onDelete={() => onDelete(t.id)}
                         onMakeFlyer={() => onMakeFlyer(t.id)}

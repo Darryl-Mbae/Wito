@@ -144,8 +144,9 @@ export const MARKETPLACE_TEMPLATES: MarketplaceTemplate[] = [
   },
 ];
 
-export const MARKETPLACE_CATEGORIES = [
-  { id: "post" as const, label: "Post" },
-  { id: "story" as const, label: "Story" },
-  { id: "flyer" as const, label: "Flyer" },
+export const MARKETPLACE_CATEGORIES: { id: "all" | "post" | "story" | "flyer"; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "post", label: "Post" },
+    { id: "story", label: "Story" },
+    { id: "flyer", label: "Square" },
 ];

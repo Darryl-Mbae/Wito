@@ -343,7 +343,7 @@ const EventPanel: React.FC<{
                         ) : (
                             <div className="space-y-2">
                                 <button
-                                    onClick={() => navigate(`/dashboard/design/flyer?eventId=${event.id}`)}
+                                    onClick={() => navigate(`/dashboard/design?eventId=${event.id}`)}
                                     className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-[#7877C6] text-[#7877C6] text-xs font-medium hover:bg-[#7877C6]/5 transition cursor-pointer"
                                 >
                                     <Sparkles size={12} />
@@ -596,8 +596,8 @@ const CalendarPage: React.FC = () => {
                                 </div>
                                 <button
                                     onClick={() => navigate(selectedEvent && !selectedEvent.isTask
-                                        ? `/dashboard/design/flyer?eventId=${selectedEvent.id}`
-                                        : "/dashboard/design/flyer")}
+                                        ? `/dashboard/design?eventId=${selectedEvent.id}`
+                                        : "/dashboard/design")}
                                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#7877C6] text-white text-[10px] font-semibold hover:bg-[#6665b5] transition cursor-pointer"
                                 >
                                     <Sparkles size={10} />
@@ -743,8 +743,8 @@ const CalendarPage: React.FC = () => {
                             </div>
                             <button
                                 onClick={() => navigate(selectedEvent && !selectedEvent.isTask
-                                    ? `/dashboard/design/flyer?eventId=${selectedEvent.id}`
-                                    : "/dashboard/design/flyer")}
+                                    ? `/dashboard/design?eventId=${selectedEvent.id}`
+                                    : "/dashboard/design")}
                                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#7877C6] text-white text-[10px] font-semibold hover:bg-[#6665b5] transition cursor-pointer"
                             >
                                 <Sparkles size={10} />

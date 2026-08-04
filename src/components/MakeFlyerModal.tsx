@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { X, Sparkles, AlertCircle, Loader2, Eye, SlidersHorizontal, Code2, RefreshCw, Plus, Calendar } from "lucide-react";
 import Editor from "@monaco-editor/react";
-import type { SavedTemplate } from "./TemplateEditor";
+import type { SavedTemplate, TemplateVariable } from "./TemplateEditor";
 import { LAYOUT_PRESETS } from "./TemplateEditor";
 import type { Flyer } from "./FlyersSection";
 import {
@@ -11,6 +11,8 @@ import {
     serverTimestamp,
 } from "firebase/firestore";
 import app from "../config/firebase";
+import { isImageField } from "../lib/orgAssets";
+import ImageFieldInput from "./ImageFieldInput";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -78,7 +80,8 @@ type FieldsMode = "friendly" | "json";
 
 type FriendlyFieldsProps = {
     jsonData: string;
-    variables: { key: string; label: string }[];
+    variables: TemplateVariable[];
+    orgId?: string;
     onChange: (v: string) => void;
 };
 
@@ -86,8 +89,21 @@ const ScalarInput: React.FC<{
     fieldKey: string;
     value: unknown;
     label: string;
+    varType?: TemplateVariable["type"];
+    orgId?: string;
     onChange: (v: string) => void;
-}> = ({ fieldKey, value, label, onChange }) => {
+}> = ({ fieldKey, value, label, varType, orgId, onChange }) => {
+    if (orgId && isImageField(fieldKey, value, varType)) {
+        return (
+            <ImageFieldInput
+                label={label}
+                value={String(value ?? "")}
+                orgId={orgId}
+                onChange={onChange}
+            />
+        );
+    }
+
     const type = inferInputType(fieldKey, value);
     const cls = "w-full px-3.5 py-2 text-[13px] font-medium rounded-xl border border-gray-200 bg-transparent focus:outline-none focus:border-[#7877C6] focus:ring-4 focus:ring-[#7877C6]/10 placeholder:text-gray-400 text-gray-800 transition-all";
     return (
@@ -280,12 +296,17 @@ const ArrayRowEditor: React.FC<{
     );
 };
 
-export const FriendlyFields: React.FC<FriendlyFieldsProps> = ({ jsonData, variables, onChange }) => {
+export const FriendlyFields: React.FC<FriendlyFieldsProps> = ({ jsonData, variables, orgId, onChange }) => {
     const [mode, setMode] = useState<FieldsMode>("friendly");
     const [jsonError, setJsonError] = useState<string | null>(null);
 
     const labelMap = useMemo(() =>
         Object.fromEntries(variables.map((v) => [v.key, v.label])),
+        [variables]
+    );
+
+    const typeMap = useMemo(() =>
+        Object.fromEntries(variables.filter((v) => v.type).map((v) => [v.key, v.type!])),
         [variables]
     );
 
@@ -301,7 +322,7 @@ export const FriendlyFields: React.FC<FriendlyFieldsProps> = ({ jsonData, variab
         try { return Array.isArray(JSON.parse(jsonData)); } catch { return false; }
     }, [jsonData]);
 
-    const handleScalarChange = (key: string, value: string) => {
+    const handleScalarChange = (key: string, value: unknown) => {
         if (!parsed) return;
         onChange(JSON.stringify({ ...parsed, [key]: value }, null, 2));
     };
@@ -336,6 +357,20 @@ export const FriendlyFields: React.FC<FriendlyFieldsProps> = ({ jsonData, variab
                         Object.entries(parsed).map(([key, value]) => {
                             const label = labelMap[key] ?? keyToLabel(key);
 
+                            if (value && typeof value === "object" && !Array.isArray(value) && "src" in (value as Record<string, unknown>)) {
+                                return (
+                                    <div key={key}>
+                                        <ScalarInput
+                                            fieldKey={key}
+                                            value={(value as { src?: string }).src ?? ""}
+                                            label={label}
+                                            varType="image"
+                                            orgId={orgId}
+                                            onChange={(v) => handleScalarChange(key, { ...(value as object), src: v })}
+                                        />
+                                    </div>
+                                );
+                            }
                             if (
                                 Array.isArray(value) &&
                                 (value.length === 0 || (typeof value[0] === "object" && value[0] !== null && !Array.isArray(value[0])))
@@ -364,6 +399,8 @@ export const FriendlyFields: React.FC<FriendlyFieldsProps> = ({ jsonData, variab
                                         fieldKey={key}
                                         value={value}
                                         label={label}
+                                        varType={typeMap[key]}
+                                        orgId={orgId}
                                         onChange={(v) => handleScalarChange(key, v)}
                                     />
                                 </div>
@@ -608,8 +645,8 @@ const MakeFlyerModal: React.FC<Props> = ({ template, orgId, workerUrl, onClose, 
                 style={{ maxHeight: "94vh" }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4.5 border-b border-gray-100 shrink-0">
-                    <div>
+                <div className=" flex items-center justify-between px-6 py-4.5 border-b border-gray-100 shrink-0 lg:pt-9">
+                    <div className="flex flex-row items-center" >
                         <h2 className="text-base font-bold text-gray-900">Make flyer</h2>
                         <p className="text-[12px] font-medium text-gray-400 mt-0.5">
                             {template.name} · {canvasWidth} × {canvasHeight}px
@@ -651,6 +688,7 @@ const MakeFlyerModal: React.FC<Props> = ({ template, orgId, workerUrl, onClose, 
                         <FriendlyFields
                             jsonData={jsonData}
                             variables={template.variables ?? []}
+                            orgId={orgId}
                             onChange={setJsonData}
                         />
 

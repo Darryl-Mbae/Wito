@@ -27,7 +27,7 @@ function wrapEmail(title: string, preheader: string, body: string): string {
   <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${preheader}</div>
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f8;min-height:100vh;">
     <tr>
-      <td align="center" style="padding:48px 16px;">
+      <td align="center" style="padding:48px 12px;">
         ${body}
       </td>
     </tr>
@@ -37,7 +37,7 @@ function wrapEmail(title: string, preheader: string, body: string): string {
 }
 
 function card(inner: string): string {
-  return `<table width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;background-color:#ffffff;border-radius:16px;overflow:hidden;border:1px solid rgba(120,119,198,0.15);">
+  return `<table width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;width:100%;background-color:#ffffff;border-radius:16px;overflow:hidden;border:1px solid rgba(120,119,198,0.15);">
     <tr><td style="height:3px;background:linear-gradient(90deg,#7877C6 0%,rgba(120,119,198,0.25) 60%,transparent 100%);"></td></tr>
     ${inner}
   </table>`;

@@ -30,7 +30,7 @@ const Settings: React.FC = () => {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
-  const isOrgOwner = activeOrg && firebaseUser && activeOrg.createdBy === firebaseUser.uid;
+  // const isOrgOwner = activeOrg && firebaseUser && activeOrg.createdBy === firebaseUser.uid;
 
   useEffect(() => {
     setConfirmText("");

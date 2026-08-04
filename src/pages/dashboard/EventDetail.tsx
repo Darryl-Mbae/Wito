@@ -259,30 +259,36 @@ const EventDetail: React.FC = () => {
                                     <option key={f} value={f} className="capitalize">{f}</option>
                                 ))}
                             </select>
-                        </div>
-
-                        <div className="sm:mt-2 md:mt-0 flex flex-row gap-4 items-center">
+                            <div className="sm:mt-2 md:mt-0 flex flex-row gap-4 items-center">
+                                <PremiumFeature
+                                    isPremium={true}
+                                    description="Send a custom email to all registrants — a thank you, a reminder, or anything else you want to say."
+                                    tooltipPosition="bottom"
+                                >
+                                    <button
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#7877C6]/30 bg-[#7877C6]/5 text-[#7877C6] text-xs font-medium cursor-pointer hover:bg-[#7877C6]/10 transition"
+                                    >
+                                        <Gem size={12} className="text-[#7877C6]" />
+                                        Send custom email
+                                    </button>
+                                </PremiumFeature>
+                            </div>
                             <PremiumFeature
                                 isPremium={true}
-                                description="Automatically email all registrants to confirm their attendance with one click."
+                                description="Export your full registrant list as a CSV file for your own records or reporting."
                                 tooltipPosition="bottom"
                             >
                                 <button
+                                    onClick={exportToCSV}
+                                    disabled={registered.length === 0}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#7877C6]/30 bg-[#7877C6]/5 text-[#7877C6] text-xs font-medium cursor-pointer hover:bg-[#7877C6]/10 transition"
                                 >
-                                    <Gem size={12} className="text-[#7877C6]" />
-                                    Send attendance email
+                                    <Download size={12} className="text-gray-400" />
+                                    Export list
+
                                 </button>
                             </PremiumFeature>
 
-                            <button
-                                onClick={exportToCSV}
-                                disabled={registered.length === 0}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 text-xs font-medium cursor-pointer hover:bg-gray-50 hover:text-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <Download size={12} className="text-gray-400" />
-                                Export list
-                            </button>
                             {/* Filter — tabs on desktop, dropdown on mobile */}
                             <div className="hidden sm:flex gap-1 bg-gray-100 rounded-xl p-1">
                                 {(["all", "attended", "absent"] as const).map((f) => (
@@ -366,7 +372,7 @@ const EventDetail: React.FC = () => {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

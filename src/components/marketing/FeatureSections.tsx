@@ -14,7 +14,7 @@ const FEATURES = [
     imageStyle: "w-full h-full object-cover lg:mb-7",
     desc: "Set up your organization first so everything lives in one branded workspace.",
   },
- 
+
   {
     id: "event",
     icon: CalendarCheck,
@@ -28,6 +28,7 @@ const FEATURES = [
     id: "flyer",
     icon: Palette,
     tag: "Step 03",
+    image: "/images/mac-flyer.png",
     title: "Generate flyer",
     desc: "Turn event details into polished visuals quickly using your templates and flyer builder.",
   },
@@ -98,25 +99,25 @@ export default function FeatureSections() {
             }}
             className="flex gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"
           >
-          {FEATURES.map((f) => {
-            const Icon = f.icon;
-            return (
-              <article
-                key={f.id}
-                className="snap-center shrink-0 w-full rounded-[2rem] border border-gray-100 bg-white p-6 shadow-[0_20px_60px_rgba(120,119,198,0.08)]"
-              >
-                <div className="inline-flex items-center gap-2 rounded-lg bg-[#7877C6]/8 px-3 py-1.5 mb-3">
-                  <Icon size={14} className="text-[#7877C6]" />
-                  <span className="text-xs font-semibold text-[#7877C6]">{f.tag}</span>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">{f.title}</h3>
-                <p className="mt-2 text-sm text-gray-500 leading-relaxed mb-5">{f.desc}</p>
-                <div className="rounded-[1.75rem] aspect-[16/10] flex items-center ">
-                  <img src={f.image} alt={f.title} className={f.imageStyle} />
-                </div>
-              </article>
-            );
-          })}
+            {FEATURES.map((f) => {
+              const Icon = f.icon;
+              return (
+                <article
+                  key={f.id}
+                  className="snap-center shrink-0 w-full rounded-[2rem] border border-gray-100 bg-white p-6 shadow-[0_20px_60px_rgba(120,119,198,0.08)]"
+                >
+                  <div className="inline-flex items-center gap-2 rounded-lg bg-[#7877C6]/8 px-3 py-1.5 mb-3">
+                    <Icon size={14} className="text-[#7877C6]" />
+                    <span className="text-xs font-semibold text-[#7877C6]">{f.tag}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 tracking-tight">{f.title}</h3>
+                  <p className="mt-2 text-sm text-gray-500 leading-relaxed mb-5">{f.desc}</p>
+                  <div className="rounded-[1.75rem] aspect-[16/10] flex items-center ">
+                    <img src={f.image} alt={f.title} className={f.imageStyle} />
+                  </div>
+                </article>
+              );
+            })}
           </div>
 
           <div className="flex items-center justify-center gap-2 mt-5">
@@ -134,11 +135,10 @@ export default function FeatureSections() {
                   });
                   setActiveMobileIndex(index);
                 }}
-                className={`h-2.5 rounded-full transition-all ${
-                  activeMobileIndex === index
+                className={`h-2.5 rounded-full transition-all ${activeMobileIndex === index
                     ? "w-6 bg-[#7877C6]"
                     : "w-2.5 bg-gray-300"
-                }`}
+                  }`}
               />
             ))}
           </div>
@@ -146,50 +146,50 @@ export default function FeatureSections() {
       </div>
 
       <section ref={targetRef} className="relative hidden lg:block" style={{ height: "240vh" }}>
-        <div className="sticky top-0 h-screen flex flex-col justify-center overflow-hidden">
+        <div className="sticky top-0 flex flex-col justify-center overflow-hidden">
           <div className="mx-auto max-w-7xl px-5 lg:px-8 w-full">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={fadeUp}
-            className="text-center max-w-2xl mx-auto mb-12"
-          >
-            <p className="text-xs font-semibold uppercase tracking-widest text-transparent mb-3">
-              spacer
-            </p>
-          </motion.div>
-        </div>
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={fadeUp}
+              className="text-center max-w-2xl mx-auto"
+            >
+              <p className="text-xs font-semibold uppercase tracking-widest text-transparent mb-3">
+                spacer
+              </p>
+            </motion.div>
+          </div>
 
-        <div className="w-full overflow-hidden">
-          <motion.div
-            style={{ x }}
-            className="flex gap-6 pl-[max(1.25rem,calc((100vw-80rem)/2+1.25rem))] pr-[18vw] lg:pr-[18vw] w-max"
-          >
-          {FEATURES.map((f) => {
-            const Icon = f.icon;
-            return (
-              <article
-                key={f.id}
-                className="shrink-0 w-[78vw] sm:w-[42rem] lg:w-[38rem] rounded-[2rem] border border-gray-100 bg-white p-6 lg:p-7 lg:pb-0"
-              >
-                <div className="inline-flex items-center gap-2 rounded-lg bg-[#7877C6]/8 px-3 py-1.5 mb-3">
-                  <Icon size={14} className="text-[#7877C6]" />
-                  <span className="text-xs font-semibold text-[#7877C6]">{f.tag}</span>
-                </div>
-                <h3 className="text-xl lg:text-2xl font-bold text-gray-900 tracking-tight">
-                  {f.title}
-                </h3>
-                <p className="mt-2 text-sm text-gray-500 leading-relaxed mb-5">{f.desc}</p>
-                <div className="rounded-[1.75rem] aspect-[16/10] flex items-center ">
-                  <img src={f.image} alt={f.title} className={f.imageStyle} />
-                </div>
-              </article>
-            );
-          })}
-          </motion.div>
+          <div className="w-full overflow-hidden">
+            <motion.div
+              style={{ x }}
+              className="pt-15 flex gap-6 pl-[max(1.25rem,calc((100vw-80rem)/2+1.25rem))] pr-[18vw] lg:pr-[18vw] w-max"
+            >
+              {FEATURES.map((f) => {
+                const Icon = f.icon;
+                return (
+                  <article
+                    key={f.id}
+                    className="shrink-0 w-[78vw] sm:w-[42rem] lg:w-[38rem] rounded-[2rem] border border-gray-200 bg-white p-6 lg:p-7 lg:pb-0"
+                  >
+                    <div className="inline-flex items-center gap-2 rounded-lg bg-[#7877C6]/8 px-3 py-1.5 mb-3">
+                      <Icon size={14} className="text-[#7877C6]" />
+                      <span className="text-xs font-semibold text-[#7877C6]">{f.tag}</span>
+                    </div>
+                    <h3 className="text-xl lg:text-2xl font-bold text-gray-900 tracking-tight">
+                      {f.title}
+                    </h3>
+                    <p className="mt-2 text-sm text-gray-500 leading-relaxed mb-5">{f.desc}</p>
+                    <div className="rounded-[1.75rem] aspect-[16/10] flex items-center ">
+                      <img src={f.image} alt={f.title} className={f.imageStyle} />
+                    </div>
+                  </article>
+                );
+              })}
+            </motion.div>
+          </div>
         </div>
-      </div>
       </section>
     </section>
   );

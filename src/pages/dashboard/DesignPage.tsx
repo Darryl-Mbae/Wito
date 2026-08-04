@@ -20,13 +20,15 @@ import TemplatesSection from "../../components/TemplatesSection";
 import type { SavedTemplate } from "../../components/TemplateEditor";
 import TemplateEditor from "../../components/TemplateEditor";
 import FlyersSection, { type Flyer } from "../../components/FlyersSection";
+import MediaLibrarySection from "../../components/MediaLibrarySection";
 import { Store } from "lucide-react";
 
-type Tab = "templates" | "flyers" | "store";
+type Tab = "templates" | "flyers" | "media" | "store";
 
 const TABS: { id: Tab; label: string }[] = [
     { id: "templates", label: "Templates" },
     { id: "flyers", label: "Flyers" },
+    { id: "media", label: "Media" },
     // { id: "store", label: "Store" },
 ];
 
@@ -99,7 +101,7 @@ const DesignPage: React.FC = () => {
 
     const orgId = activeOrg?.id || null;
     const tabParam = searchParams.get("tab") as Tab | null;
-    const [activeTab, setActiveTab] = useState<Tab>(tabParam && ["templates", "flyers"].includes(tabParam) ? tabParam : "templates");
+    const [activeTab, setActiveTab] = useState<Tab>(tabParam && ["templates", "flyers", "media"].includes(tabParam) ? tabParam : "templates");
     const [templates, setTemplates] = useState<SavedTemplate[]>([]);
     const [flyers, setFlyers] = useState<Flyer[]>([]);
     const [loading, setLoading] = useState(false);
@@ -107,7 +109,7 @@ const DesignPage: React.FC = () => {
     const [editorTarget, setEditorTarget] = useState<string | "new" | null>(null);
 
     useEffect(() => {
-        if (tabParam && ["templates", "flyers"].includes(tabParam)) {
+        if (tabParam && ["templates", "flyers", "media"].includes(tabParam)) {
             setActiveTab(tabParam as Tab);
         }
     }, [tabParam]);
@@ -236,6 +238,12 @@ const DesignPage: React.FC = () => {
                             onDelete={handleDeleteTemplate}
                             onMakeFlyer={(id) => navigate(`/dashboard/design/flyer?templateId=${id}`)}
                         />
+                    )
+                ) : activeTab === "media" ? (
+                    orgId ? (
+                        <MediaLibrarySection orgId={orgId} />
+                    ) : (
+                        <p className="text-sm text-gray-400 py-10 text-center">Select an organisation to manage media.</p>
                     )
                 ) : (
                     <FlyersSection

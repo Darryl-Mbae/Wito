@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 .env
 .env.*
+
+/utils/Auth-Secret.json

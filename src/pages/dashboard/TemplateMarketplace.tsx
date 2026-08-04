@@ -15,7 +15,10 @@ import {
   getDocs,
   query,
   orderBy,
+  runTransaction,
+
 } from "firebase/firestore";
+
 import { getAuth } from "firebase/auth";
 import app from "../../config/firebase";
 import type { DashboardContextType } from "../Dashboard";
@@ -33,12 +36,14 @@ interface MarketCardProps {
 
 const MarketCard: React.FC<MarketCardProps> = ({ item, isPurchased, isBuying, onBuy }) => {
   const [hovered, setHovered] = useState(false);
-  
+
   // Determine aspect ratio based on category
-  const aspectRatio = 
+  const aspectRatio =
     item.category === "story" ? 1080 / 1920 :
-    item.category === "flyer" ? 794 / 1123 :
-    1080 / 1350; // post default
+      item.category === "flyer" ? 1080 / 1080 :
+        1080 / 1350; // post default
+
+  console.log(item)
 
   return (
     <div
@@ -75,19 +80,19 @@ const MarketCard: React.FC<MarketCardProps> = ({ item, isPurchased, isBuying, on
           <button
             onClick={(e) => {
               e.stopPropagation();
-              !isPurchased && !isBuying && onBuy(item);
+              !isBuying && onBuy(item);
             }}
-            disabled={isPurchased || isBuying}
+            disabled={isBuying}
             className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-white text-xs font-medium transition cursor-pointer
-              ${isPurchased
-                ? "bg-gray-500 cursor-default"
-                : isBuying
-                  ? "bg-[#7877C6]/50 animate-pulse"
+    ${isBuying
+                ? "bg-[#7877C6]/50 animate-pulse"
+                : isPurchased
+                  ? "bg-gray-500 hover:bg-gray-600"
                   : "bg-[#7877C6] hover:bg-[#6665b5]"
               }`}
           >
             <ShoppingBag size={12} />
-            {isPurchased ? "Owned" : isBuying ? "Buying..." : "Buy Flyer"}
+            {isBuying ? (isPurchased ? "Restoring..." : "Buying...") : isPurchased ? "Restore" : "Buy Flyer"}
           </button>
         </div>
       </div>
@@ -165,34 +170,61 @@ const TemplateMarketplace: React.FC = () => {
       const currentUser = auth.currentUser;
       if (!currentUser) return;
 
-      // Get template data (new structure with templateData subdoc, or legacy flat structure)
       const templateData = (item as any).templateData || {
         htmlCode: (item as any).htmlCode,
         jsonData: (item as any).jsonData,
         variables: item.variables || [],
       };
 
-      // Copy template into buyer's library
-      const ref = await addDoc(collection(db, "organizations", orgId, "templates"), {
-        name: item.name,
-        method: "html",
-        htmlCode: templateData.htmlCode,
-        jsonData: templateData.jsonData,
-        variables: templateData.variables,
-        layoutPreset: item.layoutPreset,
-        marketplaceId: item.id,
-        isForSale: false,
-        createdAt: serverTimestamp(),
+      const userRef = doc(db, "users", currentUser.uid);
+      const orgRef = doc(db, "organizations", orgId);
+      // Pre-generate a ref for the copied template so we can .set() it inside the transaction
+      const newTemplateRef = doc(collection(db, "organizations", orgId, "templates"));
+
+      // ── Atomic core: credit check, deduction, ownership flag, template copy ──
+      const { alreadyOwned } = await runTransaction(db, async (tx) => {
+        const orgSnap = await tx.get(orgRef);
+        if (!orgSnap.exists()) throw new Error("Organization not found");
+
+        const currentPurchased: string[] = orgSnap.data().purchasedMarketplaceIds ?? [];
+        const alreadyOwned = currentPurchased.includes(item.id);
+
+        let userSnap = null;
+        if (!alreadyOwned && item.price > 0) {
+          userSnap = await tx.get(userRef);
+          const currentCredits = userSnap.exists() ? (userSnap.data().credits ?? 0) : 0;
+          if (currentCredits < item.price) {
+            throw new Error(`INSUFFICIENT_CREDITS:${currentCredits}`);
+          }
+        }
+
+        // Copy the template into the buyer's org library
+        tx.set(newTemplateRef, {
+          name: item.name,
+          method: "html",
+          htmlCode: templateData.htmlCode,
+          jsonData: templateData.jsonData,
+          variables: templateData.variables,
+          layoutPreset: item.layoutPreset,
+          marketplaceId: item.id,
+          isForSale: false,
+          createdAt: serverTimestamp(),
+        });
+
+        if (!alreadyOwned) {
+          if (item.price > 0) {
+            tx.update(userRef, { credits: increment(-item.price) });
+          }
+          tx.update(orgRef, { purchasedMarketplaceIds: arrayUnion(item.id) });
+        }
+
+        return { alreadyOwned };
       });
 
-      // Mark as purchased (idempotent)
-      if (!purchasedIds.includes(item.id)) {
-        await updateDoc(doc(db, "organizations", orgId), {
-          purchasedMarketplaceIds: arrayUnion(item.id),
-        });
+      if (!alreadyOwned) {
         setPurchasedIds((prev) => [...prev, item.id]);
 
-        // Record transaction for buyer
+        // Logging / seller payout — not price-critical, fine outside the transaction
         await addDoc(collection(db, "organizations", orgId, "transactions"), {
           type: "template",
           templateId: item.id,
@@ -202,16 +234,18 @@ const TemplateMarketplace: React.FC = () => {
           createdAt: serverTimestamp(),
         });
 
-        // Credit the seller (user who created template) 80%
+        await addDoc(collection(db, "users", currentUser.uid, "transactions"), {
+          type: "template-purchase",
+          templateId: item.id,
+          templateName: item.name,
+          amount: -item.price,
+          createdAt: serverTimestamp(),
+        });
+
         if (item.createdBy && item.price > 0) {
           const sellerCredit = Math.round(item.price * 0.8);
+          await updateDoc(doc(db, "users", item.createdBy), { credits: increment(sellerCredit) });
 
-          // Atomically increment seller user's credits
-          await updateDoc(doc(db, "users", item.createdBy), {
-            credits: increment(sellerCredit),
-          });
-
-          // Record the sale transaction for the seller user
           await addDoc(collection(db, "users", item.createdBy, "transactions"), {
             type: "template",
             templateId: item.id,
@@ -224,7 +258,6 @@ const TemplateMarketplace: React.FC = () => {
             createdAt: serverTimestamp(),
           });
 
-          // Push a real-time notification to the seller user
           await addDoc(collection(db, "users", item.createdBy, "notifications"), {
             category: "sale",
             from: "Marketplace",
@@ -236,9 +269,15 @@ const TemplateMarketplace: React.FC = () => {
         }
       }
 
-      navigate(`/dashboard/design/flyer?templateId=${ref.id}`);
-    } catch (err) {
+      navigate(`/dashboard/design/flyer?templateId=${newTemplateRef.id}`);
+    } catch (err: any) {
       console.error("Purchase failed:", err);
+      if (typeof err?.message === "string" && err.message.startsWith("INSUFFICIENT_CREDITS:")) {
+        const have = err.message.split(":")[1];
+        alert(`Not enough credits. You have ${have}, this costs ${item.price}.`);
+      } else {
+        alert("Purchase failed. Please try again.");
+      }
     } finally {
       setBuyingId(null);
     }

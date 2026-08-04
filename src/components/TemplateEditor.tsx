@@ -1,11 +1,17 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { ArrowLeft, Code2, Eye, Save, ChevronDown, Check, Braces, AlertCircle, Store, Tag, Upload, Loader2 } from "lucide-react";
+import { ArrowLeft, Code2, Eye, Save, ChevronDown, Check, Braces, AlertCircle, Store, Tag, Upload, Loader2, Gem } from "lucide-react";
 import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import app from "../config/firebase";
 import Editor from "@monaco-editor/react";
+import { PremiumFeature } from "./PremiumFeature";
 
 export type TemplateMethod = "html";
-export type TemplateVariable = { key: string; label: string; };
+export type TemplateVariable = {
+    key: string;
+    label: string;
+    type?: "text" | "image" | "date" | "textarea";
+    maxItems?: number;
+};
 
 export type SavedTemplate = {
     id: string; name: string; method: TemplateMethod;
@@ -13,6 +19,9 @@ export type SavedTemplate = {
     variables: TemplateVariable[];
     jsonData?: string;
     layoutPreset?: string;
+    fontPreset?: string;
+    customFontUrl?: string;
+    customFontFamily?: string;
     createdAt: string;
     isForSale?: boolean;
     salePrice?: number;
@@ -43,6 +52,12 @@ const IG_PORTRAIT_HTML = `<!DOCTYPE html>
       align-items:center; justify-content:center;
       color:var(--flyer-text-color, white); padding:64px; text-align:center;
     }
+    .photo {
+      width:280px; height:280px; border-radius:24px; object-fit:cover;
+      margin:0 0 36px; border:4px solid rgba(255,255,255,.35);
+      display:none; background:rgba(255,255,255,.12);
+    }
+    .photo.is-visible { display:block; }
     .label { font-size:11px; letter-spacing:.15em; text-transform:uppercase; opacity:.65; margin:0 0 16px; }
     h1 { font-size:48px; font-weight:700; margin:0 0 20px; line-height:1.1; }
     .meta { font-size:18px; opacity:.8; margin:0 0 8px; }
@@ -50,12 +65,18 @@ const IG_PORTRAIT_HTML = `<!DOCTYPE html>
   </style>
 </head>
 <body>
+  <img class="photo" id="photo" alt="" />
   <p class="label">You're invited</p>
   <h1 id="event_name"></h1>
   <p class="meta" id="datetime"></p>
   <p class="location" id="location"></p>
   <script>
     var d = window.__data__ || {};
+    var photo = document.getElementById('photo');
+    if (d.image_url) {
+      photo.src = d.image_url;
+      photo.classList.add('is-visible');
+    }
     document.getElementById('event_name').textContent = d.event_name || '';
     document.getElementById('datetime').textContent = (d.date || '') + (d.time ? ' · ' + d.time : '');
     document.getElementById('location').textContent = d.location || '';
@@ -63,50 +84,53 @@ const IG_PORTRAIT_HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
-const CALENDAR_A4_HTML = `<!DOCTYPE html>
+const IG_SQUARE_HTML = `
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
-    html, body { width:794px; height:1123px; overflow:hidden; font-family:var(--flyer-font-family, 'Inter'), sans-serif; color:var(--flyer-text-color, #1a1a1a); }
-    body { background:var(--flyer-background-color, #fafafa); display:flex; flex-direction:column; }
-    .header { background:linear-gradient(135deg,var(--flyer-primary-color, #7877C6),var(--flyer-secondary-color, #a5a4e0)); padding:52px 56px 44px; color:white; }
-    .header .label { font-size:10px; letter-spacing:.2em; text-transform:uppercase; opacity:.7; margin:0 0 10px; }
-    .header h1 { font-size:36px; font-weight:800; line-height:1.1; }
-    #events { padding:32px 56px; flex:1; display:flex; flex-direction:column; overflow:hidden; }
-    .row { display:flex; align-items:flex-start; gap:20px; padding:18px 0; border-top:1px solid #eee; }
-    .row:first-child { border-top:none; }
-    .badge { min-width:64px; text-align:center; background:var(--flyer-primary-color, #7877C6); border-radius:10px; padding:8px; color:white; font-size:11px; font-weight:700; line-height:1.3; }
-    .info { flex:1; }
-    .info .name { font-size:15px; font-weight:700; margin:0 0 3px; }
-    .info .meta { font-size:12px; color:#666; }
+    html, body { width:1080px; height:1080px; overflow:hidden; font-family:var(--flyer-font-family, 'Inter'), sans-serif; }
+    body {
+      background: linear-gradient(135deg,var(--flyer-primary-color, #7877C6) 0%,var(--flyer-secondary-color, #a5a4e0) 100%);
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      color:var(--flyer-text-color, white); padding:64px; text-align:center;
+    }
+    .photo {
+      width:280px; height:280px; border-radius:24px; object-fit:cover;
+      margin:0 0 36px; border:4px solid rgba(255,255,255,.35);
+      display:none; background:rgba(255,255,255,.12);
+    }
+    .photo.is-visible { display:block; }
+    .label { font-size:11px; letter-spacing:.15em; text-transform:uppercase; opacity:.65; margin:0 0 16px; }
+    h1 { font-size:48px; font-weight:700; margin:0 0 20px; line-height:1.1; }
+    .meta { font-size:18px; opacity:.8; margin:0 0 8px; }
+    .location { font-size:14px; opacity:.6; }
   </style>
 </head>
 <body>
-  <div class="header">
-    <p class="label">Upcoming Events</p>
-    <h1>What's On</h1>
-  </div>
-  <div id="events"></div>
+  <img class="photo" id="photo" alt="" />
+  <p class="label">You're invited</p>
+  <h1 id="event_name"></h1>
+  <p class="meta" id="datetime"></p>
+  <p class="location" id="location"></p>
   <script>
-    var events = window.__data__ || [];
-    var container = document.getElementById('events');
-    events.forEach(function(e) {
-      var row = document.createElement('div');
-      row.className = 'row';
-      row.innerHTML =
-        '<div class="badge">' + e.date + '</div>' +
-        '<div class="info">' +
-          '<p class="name">' + e.name + '</p>' +
-          '<p class="meta">' + e.time + ' &nbsp;·&nbsp; ' + e.location + '</p>' +
-        '</div>';
-      container.appendChild(row);
-    });
+    var d = window.__data__ || {};
+    var photo = document.getElementById('photo');
+    if (d.image_url) {
+      photo.src = d.image_url;
+      photo.classList.add('is-visible');
+    }
+    document.getElementById('event_name').textContent = d.event_name || '';
+    document.getElementById('datetime').textContent = (d.date || '') + (d.time ? ' · ' + d.time : '');
+    document.getElementById('location').textContent = d.location || '';
   </script>
 </body>
-</html>`;
+</html>
+`;
 
 const IG_STORY_HTML = `<!DOCTYPE html>
 <html lang="en">
@@ -148,7 +172,7 @@ export const LAYOUT_PRESETS = [
         label: "Instagram Post (Portrait)",
         width: 1080,
         height: 1350,
-        sampleJson: JSON.stringify({ event_name: "Annual Gala", date: "July 12, 2025", time: "7:00 PM", location: "Nairobi Serena Hotel" }, null, 2),
+        sampleJson: JSON.stringify({ event_name: "Annual Gala", date: "July 12, 2025", time: "7:00 PM", location: "Nairobi Serena Hotel", image_url: "" }, null, 2),
         html: IG_PORTRAIT_HTML,
     },
     {
@@ -161,18 +185,49 @@ export const LAYOUT_PRESETS = [
     },
     {
         id: "calendar-a4",
-        label: "Event Calendar (A4)",
-        width: 794,
-        height: 1123,
+        label: "Square",
+        width: 1080,
+        height: 1080,
         sampleJson: JSON.stringify([
             { name: "Annual Gala", date: "July 12", time: "7:00 PM", location: "Serena Hotel" },
             { name: "Tech Summit", date: "Aug 3", time: "9:00 AM", location: "iHub Nairobi" },
             { name: "Art Exhibition", date: "Aug 17", time: "2:00 PM", location: "GoDown Arts" },
             { name: "Fundraiser Dinner", date: "Sept 5", time: "6:30 PM", location: "Sankara Hotel" },
         ], null, 2),
-        html: CALENDAR_A4_HTML,
+        html: IG_SQUARE_HTML,
     },
 ];
+
+// ─── Font presets ─────────────────────────────────────────────────────────────
+
+export type FontPreset = {
+    id: string;
+    label: string;
+    family: string;
+    googleFontUrl: string;
+};
+
+export const FONT_PRESETS: FontPreset[] = [
+    { id: "inter", label: "Inter", family: "Inter", googleFontUrl: "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" },
+    { id: "poppins", label: "Poppins", family: "Poppins", googleFontUrl: "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" },
+    { id: "dm-serif", label: "DM Serif Display", family: "DM Serif Display", googleFontUrl: "https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap" },
+    { id: "playfair", label: "Playfair Display", family: "Playfair Display", googleFontUrl: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&display=swap" },
+    { id: "open sans", label: "Open Sans", family: "Open Sans", googleFontUrl: "https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" },
+    { id: "custom", label: "Custom URL…", family: "", googleFontUrl: "" },
+];
+
+function injectFont(template: string, googleFontUrl: string, fontFamily: string): string {
+    if (!googleFontUrl && !fontFamily) return template;
+    const linkTag = googleFontUrl ? `<link href="${googleFontUrl}" rel="stylesheet">` : "";
+    const varStyle = fontFamily ? `<style>:root{--flyer-font-family:'${fontFamily}';}</style>` : "";
+    const inject = `${linkTag}\n${varStyle}`;
+    const trimmed = template.trimStart();
+    const withHead = trimmed.replace(/(<head[^>]*>)/i, `$1\n${inject}`);
+    if (withHead !== trimmed) return withHead;
+    const withBody = trimmed.replace(/(<body[^>]*>)/i, `${inject}\n$1`);
+    if (withBody !== trimmed) return withBody;
+    return inject + "\n" + trimmed;
+}
 
 // ─── Parse JSON ───────────────────────────────────────────────────────────────
 
@@ -215,7 +270,7 @@ const DataPanel: React.FC<DataPanelProps> = ({ jsonData, parseResult, stretch, o
     <div className={`flex flex-col gap-3 ${stretch ? "flex-1 min-h-0 overflow-hidden" : ""}`}>
         <div className={`flex flex-col overflow-hidden transition ${stretch ? "flex-1 min-h-0" : ""} ${parseResult.kind === "error" ? "border-red-200 bg-red-50/30" : "border-gray-200 bg-white"}`}>
             <div className={`w-full pt-5 ${stretch ? "flex-1 min-h-0" : ""}`} style={stretch ? undefined : { minHeight: "220px", maxHeight: "340px" }}>
-                <Editor language="json" value={jsonData} onChange={(value) => onChange(value || "")} theme="vs-light" height="70vh" options={{minimap: { enabled: false }, fontSize: 12, tabSize: 2, wordWrap: "on", automaticLayout: true, formatOnPaste: true, formatOnType: true, scrollBeyondLastLine: false, lineNumbers: "on", folding: true, glyphMargin: false, renderLineHighlight: "line"}} />
+                <Editor language="json" value={jsonData} onChange={(value) => onChange(value || "")} theme="vs-light" height="70vh" options={{ minimap: { enabled: false }, fontSize: 12, tabSize: 2, wordWrap: "on", automaticLayout: true, formatOnPaste: true, formatOnType: true, scrollBeyondLastLine: false, lineNumbers: "on", folding: true, glyphMargin: false, renderLineHighlight: "line" }} />
             </div>
             {parseResult.kind === "error" && <div className="flex items-center gap-1.5 px-3 py-2 border-t border-red-100 bg-red-50/50 shrink-0"><AlertCircle size={10} className="text-red-400 shrink-0" /><p className="text-[10px] text-red-500 font-mono">{parseResult.error}</p></div>}
         </div>
@@ -228,7 +283,7 @@ const DataPanel: React.FC<DataPanelProps> = ({ jsonData, parseResult, stretch, o
 type CodePanelProps = { htmlCode: string; textareaRef: React.RefObject<HTMLTextAreaElement | null>; onChange: (v: string) => void; };
 const CodePanel: React.FC<CodePanelProps> = ({ htmlCode, onChange }) => (
     <div className="flex-1 min-h-0 overflow-hidden">
-        <Editor height="100%" defaultLanguage="html" value={htmlCode} onChange={(value) => onChange(value || "")} theme="vs-light" options={{minimap: { enabled: false }, fontSize: 13, wordWrap: "on", automaticLayout: true, tabSize: 2, formatOnPaste: true, formatOnType: true, scrollBeyondLastLine: false, roundedSelection: true, autoClosingBrackets: "always", autoClosingQuotes: "always", autoIndent: "full", suggestOnTriggerCharacters: true, quickSuggestions: true, padding: { top: 12, bottom: 12 }}} />
+        <Editor height="100%" defaultLanguage="html" value={htmlCode} onChange={(value) => onChange(value || "")} theme="vs-light" options={{ minimap: { enabled: false }, fontSize: 13, wordWrap: "on", automaticLayout: true, tabSize: 2, formatOnPaste: true, formatOnType: true, scrollBeyondLastLine: false, roundedSelection: true, autoClosingBrackets: "always", autoClosingQuotes: "always", autoIndent: "full", suggestOnTriggerCharacters: true, quickSuggestions: true, padding: { top: 12, bottom: 12 } }} />
     </div>
 );
 
@@ -263,6 +318,87 @@ const LayoutDropdown: React.FC<{ selected: string; onSelect: (id: string) => voi
                             <span className="text-[10px] text-gray-400 shrink-0">{p.width} × {p.height}</span>
                         </button>
                     ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ─── Font Dropdown ────────────────────────────────────────────────────────────
+
+type FontDropdownProps = {
+    selectedFontId: string;
+    customFontUrl: string;
+    customFontFamily: string;
+    onSelectPreset: (id: string) => void;
+    onCustomUrlChange: (v: string) => void;
+    onCustomFamilyChange: (v: string) => void;
+};
+
+const FontDropdown: React.FC<FontDropdownProps> = ({
+    selectedFontId, customFontUrl, customFontFamily,
+    onSelectPreset, onCustomUrlChange, onCustomFamilyChange,
+}) => {
+    const [open, setOpen] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+    const current = FONT_PRESETS.find((f) => f.id === selectedFontId) ?? FONT_PRESETS[0];
+    const isCustom = selectedFontId === "custom";
+
+    useEffect(() => {
+        const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
+    return (
+        <div ref={ref} className="relative ">
+            <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-left hover:border-gray-300 transition cursor-pointer">
+                <span className="text-[11px] font-medium text-gray-700 truncate">
+                    {isCustom ? (customFontFamily || "Custom font…") : current.label}
+                </span>
+                <ChevronDown size={11} className={`text-gray-400 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+            </button>
+
+
+            {open && (
+                <div className="lg:min-w-60 absolute top-full right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
+                    {FONT_PRESETS.map((f) =>
+                        f.id === "custom" ? (
+                            <PremiumFeature
+                                key={f.id}
+                                isPremium={true}
+                                description="Upload your own custom font by URL for a fully on-brand flyer."
+                                tooltipPosition="bottom-left"
+                                className="w-full"
+                            >
+                                <button
+                                    onClick={() => { onSelectPreset(f.id); }}
+                                    className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 transition cursor-pointer ${f.id === selectedFontId ? "bg-[#7877C6]/5" : ""}`}
+                                >
+                                    {f.id === selectedFontId ? <Check size={10} className="text-[#7877C6] shrink-0" /> : <div className="w-2.5 shrink-0" />}
+                                    <span className={`text-[11px] font-medium truncate flex items-center gap-1 ${f.id === selectedFontId ? "text-[#7877C6]" : "text-gray-700"}`}>
+                                        {f.label}
+                                        <Gem size={9} className="text-[#7877C6]" />
+                                    </span>
+                                </button>
+                            </PremiumFeature>
+                        ) : (
+                            <button
+                                key={f.id}
+                                onClick={() => { onSelectPreset(f.id); setOpen(false); }}
+                                className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 transition cursor-pointer ${f.id === selectedFontId ? "bg-[#7877C6]/5" : ""}`}
+                            >
+                                {f.id === selectedFontId ? <Check size={10} className="text-[#7877C6] shrink-0" /> : <div className="w-2.5 shrink-0" />}
+                                <span className={`text-[11px] font-medium truncate ${f.id === selectedFontId ? "text-[#7877C6]" : "text-gray-700"}`}>{f.label}</span>
+                            </button>
+                        )
+                    )}
+
+                    {isCustom && (
+                        <div className="p-3 border-t border-gray-100 space-y-2">
+                            {/* unchanged */}
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -317,10 +453,24 @@ const TemplateEditor: React.FC<Props> = ({ onBack, onSave, initialTemplate, orgI
     const codeTextareaRef = useRef<HTMLTextAreaElement>(null);
     const parseResult = useMemo(() => parseJsonData(jsonData), [jsonData]);
 
+    const [selectedFontId, setSelectedFontId] = useState<string>(initialTemplate?.fontPreset ?? "inter");
+    const [customFontUrl, setCustomFontUrl] = useState<string>(initialTemplate?.customFontUrl ?? "");
+    const [customFontFamily, setCustomFontFamily] = useState<string>(initialTemplate?.customFontFamily ?? "");
+
+    const activeFont = useMemo(() => {
+        if (selectedFontId === "custom") {
+            return { googleFontUrl: customFontUrl.trim(), family: customFontFamily.trim() };
+        }
+        const preset = FONT_PRESETS.find((f) => f.id === selectedFontId);
+        return { googleFontUrl: preset?.googleFontUrl ?? "", family: preset?.family ?? "" };
+    }, [selectedFontId, customFontUrl, customFontFamily]);
+
     useEffect(() => {
         const value = parseResult.kind === "ok" ? parseResult.value : null;
-        setPreviewSrc(`data:text/html;charset=utf-8,${encodeURIComponent(buildPreviewHtml(htmlCode, value))}`);
-    }, [htmlCode, parseResult]);
+        const withData = buildPreviewHtml(htmlCode, value);
+        const withFont = injectFont(withData, activeFont.googleFontUrl, activeFont.family);
+        setPreviewSrc(`data:text/html;charset=utf-8,${encodeURIComponent(withFont)}`);
+    }, [htmlCode, parseResult, activeFont]);
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -348,6 +498,9 @@ const TemplateEditor: React.FC<Props> = ({ onBack, onSave, initialTemplate, orgI
             variables: [],
             jsonData,
             layoutPreset: selectedLayout,
+            fontPreset: selectedFontId,
+            customFontUrl: selectedFontId === "custom" ? customFontUrl.trim() : undefined,
+            customFontFamily: selectedFontId === "custom" ? customFontFamily.trim() : undefined,
             isForSale,
             salePrice: isForSale ? salePrice : undefined,
         });
@@ -358,11 +511,12 @@ const TemplateEditor: React.FC<Props> = ({ onBack, onSave, initialTemplate, orgI
         setPublishingToStore(true);
         try {
             const workerUrl = import.meta.env.VITE_WORKER_URL;
-            
+
             // Build preview HTML with actual data (not template code)
             const dataValue = parseResult.kind === "ok" ? parseResult.value : null;
-            const compiledHtml = buildPreviewHtml(htmlCode, dataValue);
-            
+            const withData = buildPreviewHtml(htmlCode, dataValue);
+            const compiledHtml = injectFont(withData, activeFont.googleFontUrl, activeFont.family);
+
             // Generate preview image
             const previewRes = await fetch(
                 `${workerUrl}/screenshot`,
@@ -394,7 +548,13 @@ const TemplateEditor: React.FC<Props> = ({ onBack, onSave, initialTemplate, orgI
             if (!uploadRes.ok) {
                 throw new Error("Failed to upload preview");
             }
+            const inferCategory = (layoutPreset: string): "post" | "story" | "flyer" => {
+                if (layoutPreset === "ig-story") return "story";
+                if (layoutPreset === "calendar-a4") return "flyer"; // or whatever your flyer presets are
+                return "post";
+            };
 
+        
             const uploadData = await uploadRes.json() as { url: string };
             const previewUrl = uploadData.url;
 
@@ -404,7 +564,7 @@ const TemplateEditor: React.FC<Props> = ({ onBack, onSave, initialTemplate, orgI
                 description: `Template by ${orgId}`,
                 layoutPreset: selectedLayout,
                 tags: [],
-                category: "post",
+                category: inferCategory(selectedLayout),
                 price: salePrice,
                 isPremium: salePrice > 0,
                 previewUrl,
@@ -418,6 +578,9 @@ const TemplateEditor: React.FC<Props> = ({ onBack, onSave, initialTemplate, orgI
                     htmlCode,
                     jsonData,
                     variables: [],
+                    fontPreset: selectedFontId,
+                    customFontUrl: selectedFontId === "custom" ? customFontUrl.trim() : null,
+                    customFontFamily: selectedFontId === "custom" ? customFontFamily.trim() : null,
                 },
             });
             setSellPopoverOpen(false);
@@ -443,7 +606,7 @@ const TemplateEditor: React.FC<Props> = ({ onBack, onSave, initialTemplate, orgI
                 </button>
                 <span className="text-gray-200 hidden sm:inline">/</span>
                 <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Template name…" className="flex-1 min-w-0 text-sm font-semibold text-gray-900 bg-transparent focus:outline-none placeholder-gray-300" />
-                
+
                 {/* Sell in store button + popover */}
                 <div className="relative" ref={sellPopoverRef}>
                     <button onClick={() => setSellPopoverOpen(!sellPopoverOpen)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition cursor-pointer ${isForSale ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
@@ -511,16 +674,33 @@ const TemplateEditor: React.FC<Props> = ({ onBack, onSave, initialTemplate, orgI
                     </div>
 
                     <div className="flex flex-col gap-2 min-h-0 overflow-hidden">
-                        <div className="flex items-center gap-2 shrink-0">
-                            <Eye size={11} className="text-gray-400 shrink-0" />
-                            <span className="text-[11px] font-semibold text-gray-500 shrink-0">Layout</span>
-                            <div className="flex-1 min-w-0">
-                                <LayoutDropdown selected={selectedLayout} onSelect={applyLayout} />
+                        <div className="flex flex-row gap-2">
+                            <div className="flex items-center gap-2 shrink-0">
+                                <Eye size={11} className="text-gray-400 shrink-0" />
+                                <span className="text-[11px] font-semibold text-gray-500 shrink-0">Layout</span>
+                                <div className="flex-1 min-w-0">
+                                    <LayoutDropdown selected={selectedLayout} onSelect={applyLayout} />
+                                </div>
+                                <span className="text-[10px] text-gray-400 shrink-0 tabular-nums">
+                                    {currentPreset.width} × {currentPreset.height}px
+                                </span>
                             </div>
-                            <span className="text-[10px] text-gray-400 shrink-0 tabular-nums">
-                                {currentPreset.width} × {currentPreset.height}px
-                            </span>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-[11px] font-semibold text-gray-500 shrink-0 pl-[15px]">Font</span>
+                                <div className="flex-1 min-w-40">
+                                    <FontDropdown
+                                        selectedFontId={selectedFontId}
+                                        customFontUrl={customFontUrl}
+                                        customFontFamily={customFontFamily}
+                                        onSelectPreset={setSelectedFontId}
+                                        onCustomUrlChange={setCustomFontUrl}
+                                        onCustomFamilyChange={setCustomFontFamily}
+                                    />
+                                </div>
+                            </div>
                         </div>
+
                         <ScaledPreview src={previewSrc} canvasWidth={currentPreset.width} canvasHeight={currentPreset.height} containerClass="flex-1 min-h-0 overflow-hidden rounded-2xl p-3" />
                     </div>
                 </div>
@@ -541,9 +721,22 @@ const TemplateEditor: React.FC<Props> = ({ onBack, onSave, initialTemplate, orgI
                     <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
                         {mobileTab === "data" && (
                             <div className="flex flex-col gap-3 pb-4">
-                                <div>
-                                    <p className="text-[11px] font-semibold text-gray-500 mb-1.5">Layout</p>
-                                    <LayoutDropdown selected={selectedLayout} onSelect={applyLayout} />
+                                <div className="flex flex-col gap-2">
+                                    <div>
+                                        <p className="text-[11px] font-semibold text-gray-500 mb-1.5">Layout</p>
+                                        <LayoutDropdown selected={selectedLayout} onSelect={applyLayout} />
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] font-semibold text-gray-500 mb-1.5 min-w-60">Font</p>
+                                        <FontDropdown
+                                            selectedFontId={selectedFontId}
+                                            customFontUrl={customFontUrl}
+                                            customFontFamily={customFontFamily}
+                                            onSelectPreset={setSelectedFontId}
+                                            onCustomUrlChange={setCustomFontUrl}
+                                            onCustomFamilyChange={setCustomFontFamily}
+                                        />
+                                    </div>
                                 </div>
                                 <DataPanel {...dataPanelProps} stretch={false} />
                             </div>
@@ -555,7 +748,7 @@ const TemplateEditor: React.FC<Props> = ({ onBack, onSave, initialTemplate, orgI
                                     <span className="text-[10px] text-gray-400 font-mono">template.html</span>
                                 </div>
                                 <div className="flex-1 min-h-[360px] pt-4">
-                                    <Editor language="html" value={htmlCode} onChange={(value) => setHtmlCode(value || "")} theme="vs-light" height="70vh" options={{minimap: { enabled: false }, fontSize: 13, wordWrap: "on", automaticLayout: true, scrollBeyondLastLine: false}} />
+                                    <Editor language="html" value={htmlCode} onChange={(value) => setHtmlCode(value || "")} theme="vs-light" height="70vh" options={{ minimap: { enabled: false }, fontSize: 13, wordWrap: "on", automaticLayout: true, scrollBeyondLastLine: false }} />
                                 </div>
                             </div>
                         )}

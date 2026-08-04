@@ -210,9 +210,9 @@ const MakeFlyerPage: React.FC = () => {
 
   // ── Editor ──────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full min-h-[calc(100vh-8rem)] -m-4 md:-m-8">
+    <div className="flex flex-col h-auto lg:h-full min-h-[calc(100vh-8rem)] -m-4 md:-m-8">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 md:px-8 py-4 border-b border-gray-100 bg-white shrink-0">
+      <div className="flex flex-row lg:items-center justify-between px-4 md:px-8 py-4 border-b border-gray-100 bg-white shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/dashboard/design")}
@@ -220,17 +220,17 @@ const MakeFlyerPage: React.FC = () => {
           >
             <ArrowLeft size={18} className="text-gray-600" />
           </button>
-          <div className="flex flex-row gap-4 items-baseline">
+          <div className="flex flex-col lg:flex-row lg:gap-4 items-baseline">
             <h1 className="text-base font-bold text-gray-900">Make flyer</h1>
             <p className="text-[12px] text-gray-400">
-              {template.name} · {canvasWidth} × {canvasHeight}px
+              {template.name} · <br className="md:hidden"/>{canvasWidth} × {canvasHeight}px
             </p>
           </div>
         </div>
         <button
           onClick={handleSave}
           disabled={hasJsonError || isSaving || !template.htmlCode}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#7877C6] hover:bg-[#6665b5] disabled:opacity-50 text-white text-xs font-bold transition cursor-pointer"
+          className="max-h-10 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#7877C6] hover:bg-[#6665b5] disabled:opacity-50 text-white text-xs font-bold transition cursor-pointer"
         >
           {isSaving
             ? <><Loader2 size={14} className="animate-spin" />Saving…</>
@@ -270,6 +270,7 @@ const MakeFlyerPage: React.FC = () => {
           <FriendlyFields
             jsonData={jsonData}
             variables={template.variables ?? []}
+            orgId={orgId}
             onChange={setJsonData}
           />
 

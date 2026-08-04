@@ -22,9 +22,16 @@ import {
     Users,
 } from "lucide-react";
 import AddToCalendar from "../components/AddToCalendar";
+import GoogleCalendarSyncToggle from "../components/GoogleCalendarSyncToggle";
 import { sendTemplatedEmail } from "../lib/emails/sendEmail";
 import { EMAIL_TEMPLATES } from "../lib/emails/templates";
 import { buildGoogleCalendarUrl } from "../utils/calendarLinks";
+import {
+    requestCalendarAccess,
+    isTokenValid,
+    type CalendarAuthResult,
+} from "../utils/GoogleCalendarAuth";
+import { insertGoogleCalendarEvent } from "../utils/googleCalendarApi";
 import appConfig from "../config/app";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -50,6 +57,9 @@ const isVirtualLink = (loc: string) =>
 const isGoogleMeet = (loc: string) =>
     loc?.toLowerCase().includes("meet.google") ||
     loc?.toLowerCase().includes("google meet");
+
+const validateEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -121,6 +131,15 @@ const EventPublic: React.FC = () => {
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Google Calendar sync state
+    const [calendarSync, setCalendarSync] = useState(false);
+    const [calendarConnecting, setCalendarConnecting] = useState(false);
+    const [calendarAuth, setCalendarAuth] = useState<CalendarAuthResult | null>(null);
+    const [calendarError, setCalendarError] = useState<string | null>(null);
+    const [calendarSynced, setCalendarSynced] = useState(false);
+
+    const emailValid = validateEmail(form.email);
+
     useEffect(() => {
         if (!id) return;
         const db = getFirestore(app);
@@ -186,11 +205,41 @@ const EventPublic: React.FC = () => {
         (e: React.ChangeEvent<HTMLInputElement>) => {
             const value = e.target.value;
             setForm((f) => ({ ...f, [field]: value }));
-            if (field === "email") checkDuplicate(value);
+            if (field === "email") {
+                checkDuplicate(value);
+                // If email becomes invalid again, drop any calendar auth we were holding
+                if (!validateEmail(value) && calendarSync) {
+                    setCalendarSync(false);
+                    setCalendarAuth(null);
+                    setCalendarError(null);
+                }
+            }
         };
 
-    const validateEmail = (email: string) =>
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const handleToggleCalendarSync = async () => {
+        if (!emailValid) return;
+
+        if (calendarSync) {
+            setCalendarSync(false);
+            setCalendarAuth(null);
+            setCalendarError(null);
+            return;
+        }
+
+        setCalendarError(null);
+        setCalendarConnecting(true);
+        try {
+            const result = await requestCalendarAccess();
+            setCalendarAuth(result);
+            setCalendarSync(true);
+        } catch (err: any) {
+            console.error("Google Calendar auth failed:", err);
+            setCalendarError("Couldn't connect to Google Calendar. Please try again.");
+            setCalendarSync(false);
+        } finally {
+            setCalendarConnecting(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -257,7 +306,23 @@ const EventPublic: React.FC = () => {
                         base_url: baseUrl,
                     }
                 ).catch((err) => console.error("Registration confirmation email failed:", err));
-            
+            }
+
+            // Auto-sync to the registrant's Google Calendar if they opted in
+            if (event && calendarSync && isTokenValid(calendarAuth)) {
+                try {
+                    await insertGoogleCalendarEvent(calendarAuth!.accessToken, {
+                        name: event.name,
+                        date: event.date,
+                        time: event.time,
+                        location: event.location,
+                        description: event.description,
+                    });
+                    setCalendarSynced(true);
+                } catch (err) {
+                    console.error("Google Calendar sync failed:", err);
+                    setCalendarSynced(false);
+                }
             }
 
             setSubmitted(true);
@@ -389,6 +454,17 @@ const EventPublic: React.FC = () => {
                             }}
                         />
 
+                        {calendarSync && (
+                            <p
+                                className={`text-xs text-center flex items-center justify-center gap-1 ${calendarSynced ? "text-emerald-600" : "text-gray-400"
+                                    }`}
+                            >
+                                {calendarSynced
+                                    ? "✓ Added to your Google Calendar"
+                                    : "Couldn't auto-add to Google Calendar — use the button above instead."}
+                            </p>
+                        )}
+
                         {/* Name summary */}
                         <p className="text-xs text-center text-gray-400">
                             Registered as{" "}
@@ -490,6 +566,16 @@ const EventPublic: React.FC = () => {
                                     </DetailRow>
                                 )}
                             </div>
+
+                            {/* Desktop-only calendar sync toggle, gated on a valid email */}
+                            {/* <GoogleCalendarSyncToggle
+                                className="hidden lg:block"
+                                checked={calendarSync}
+                                connecting={calendarConnecting}
+                                error={calendarError}
+                                disabled={!emailValid}
+                                onToggle={handleToggleCalendarSync}
+                            /> */}
                         </div>
                     </div>
 
@@ -549,6 +635,8 @@ const EventPublic: React.FC = () => {
                                         This email is already registered for this event.
                                     </p>
                                 )}
+
+
                             </div>
 
                             {/* Phone */}
@@ -610,7 +698,15 @@ const EventPublic: React.FC = () => {
                                     />
                                 </div>
                             )}
-
+                            {/* Mobile-only calendar sync toggle, appears right under email */}
+                            {/* <GoogleCalendarSyncToggle
+                                className="lg:hidden mt-3"
+                                checked={calendarSync}
+                                connecting={calendarConnecting}
+                                error={calendarError}
+                                disabled={!emailValid}
+                                onToggle={handleToggleCalendarSync}
+                            /> */}
                             {/* Submit */}
                             <button
                                 type="submit"

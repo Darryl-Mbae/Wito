@@ -17,6 +17,7 @@ export type Flyer = {
 };
 
 type FilterType = "post" | "story" | "flyer";
+type ActiveFilter = "all" | FilterType;
 
 const getFilterType = (
     width?: number,
@@ -38,13 +39,14 @@ const getFilterType = (
 const ASPECT: Record<FilterType, string> = {
     post: "4 / 5",
     story: "9 / 16",
-    flyer: "794 / 1123",
+    flyer: "1",
 };
 
-const FILTER_LABELS: { id: FilterType; label: string }[] = [
+const FILTER_LABELS: { id: ActiveFilter; label: string }[] = [
+    { id: "all", label: "All" },
     { id: "post", label: "Post" },
     { id: "story", label: "Story" },
-    { id: "flyer", label: "Flyer" },
+    { id: "flyer", label: "Square" },
 ];
 
 const WORKER_BASE_URL = "https://mailtrap.darrylmbae01.workers.dev";
@@ -225,10 +227,12 @@ const FlyersSection: React.FC<{
     onDelete: (id: string) => void;
     onSwitchToTemplates: () => void;
 }> = ({ flyers, orgId, onDelete, onSwitchToTemplates }) => {
-    const [activeFilter, setActiveFilter] = useState<FilterType>("post");
+    const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
     const [lightbox, setLightbox] = useState<{ flyer: Flyer; blobUrl: string } | null>(null);
 
-    const visible = flyers.filter((f) => getFilterType(f.width, f.height) === activeFilter);
+    const visible = activeFilter === "all"
+        ? flyers
+        : flyers.filter((f) => getFilterType(f.width, f.height) === activeFilter);
 
     return (
         <div>
@@ -258,7 +262,7 @@ const FlyersSection: React.FC<{
                             flyer={flyer}
                             orgId={orgId}
                             onDelete={() => onDelete(flyer.id)}
-                            filterType={activeFilter}
+                            filterType={activeFilter === "all" ? getFilterType(flyer.width, flyer.height) : activeFilter}
                             onOpen={(blobUrl) => setLightbox({ flyer, blobUrl })}
                         />
                     ))}
@@ -266,7 +270,7 @@ const FlyersSection: React.FC<{
             ) : (
                 <EmptyState
                     icon={ImageIcon}
-                    title={`No ${activeFilter}s yet`}
+                    title={activeFilter === "all" ? "No flyers yet" : `No ${activeFilter}s yet`}
                     description="Create your first flyer to get started"
                     action={{ label: "Go to templates", onClick: onSwitchToTemplates }}
                 />
