@@ -19,7 +19,7 @@ import {
     Search,
     Check,
     Gem,
-    Download,
+    // Download,
 } from "lucide-react";
 import {
     formatDate,
@@ -259,7 +259,7 @@ const EventDetail: React.FC = () => {
                                     <option key={f} value={f} className="capitalize">{f}</option>
                                 ))}
                             </select>
-                            <div className="sm:mt-2 md:mt-0 flex flex-row gap-4 items-center">
+                            {/* <div className="sm:mt-2 md:mt-0 flex flex-row gap-4 items-center">
                                 <PremiumFeature
                                     isPremium={true}
                                     description="Send a custom email to all registrants — a thank you, a reminder, or anything else you want to say."
@@ -272,7 +272,7 @@ const EventDetail: React.FC = () => {
                                         Send custom email
                                     </button>
                                 </PremiumFeature>
-                            </div>
+                            </div> */}
                             <PremiumFeature
                                 isPremium={true}
                                 description="Export your full registrant list as a CSV file for your own records or reporting."
@@ -283,7 +283,8 @@ const EventDetail: React.FC = () => {
                                     disabled={registered.length === 0}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#7877C6]/30 bg-[#7877C6]/5 text-[#7877C6] text-xs font-medium cursor-pointer hover:bg-[#7877C6]/10 transition"
                                 >
-                                    <Download size={12} className="text-gray-400" />
+                                    <Gem size={12} className="text-[#7877C6]" />
+                                    {/* <Download size={12} className="text-gray-400" /> */}
                                     Export list
 
                                 </button>

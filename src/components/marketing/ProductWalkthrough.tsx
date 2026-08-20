@@ -60,7 +60,7 @@ export default function ProductWalkthrough() {
           <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">
             From planning to packed events
           </h2>
-          <p className="mt-4 text-gray-500">Every step happens inside Rada — no switching tools.</p>
+          <p className="mt-4 text-gray-500">Every step happens inside Wito — no switching tools.</p>
         </motion.div>
 
         <div className="space-y-24 lg:space-y-32">

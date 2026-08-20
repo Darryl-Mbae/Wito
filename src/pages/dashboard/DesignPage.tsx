@@ -21,7 +21,7 @@ import type { SavedTemplate } from "../../components/TemplateEditor";
 import TemplateEditor from "../../components/TemplateEditor";
 import FlyersSection, { type Flyer } from "../../components/FlyersSection";
 import MediaLibrarySection from "../../components/MediaLibrarySection";
-import { Store } from "lucide-react";
+import { Store, ShoppingCart } from "lucide-react";
 
 type Tab = "templates" | "flyers" | "media" | "store";
 
@@ -168,13 +168,22 @@ const DesignPage: React.FC = () => {
             {!showEditor && (
                 <div className="flex items-center justify-between shrink-0">
                     <h1 className="text-xl font-semibold text-gray-900">Design</h1>
-                    <button
-                        onClick={() => navigate("/dashboard/design/marketplace")}
-                        className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-gray-200 text-[12px] font-semibold text-gray-600 hover:border-[#7877C6]/40 hover:text-[#7877C6] hover:bg-[#7877C6]/4 transition cursor-pointer"
-                    >
-                        <Store size={14} />
-                        Store
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => navigate("/dashboard/design/seller-dashboard")}
+                            className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-gray-200 text-[12px] font-semibold text-gray-600 hover:border-[#7877C6]/40 hover:text-[#7877C6] hover:bg-[#7877C6]/4 transition cursor-pointer"
+                        >
+                            <ShoppingCart size={14} />
+                            My Shop
+                        </button>
+                        <button
+                            onClick={() => navigate("/dashboard/design/marketplace")}
+                            className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-gray-200 text-[12px] font-semibold text-gray-600 hover:border-[#7877C6]/40 hover:text-[#7877C6] hover:bg-[#7877C6]/4 transition cursor-pointer"
+                        >
+                            <Store size={14} />
+                            Store
+                        </button>
+                    </div>
                 </div>
             )}
 

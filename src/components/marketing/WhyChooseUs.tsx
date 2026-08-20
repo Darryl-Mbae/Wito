@@ -1,17 +1,17 @@
 import { motion } from "framer-motion";
-import { CheckCircle2 } from "lucide-react";
+// import { CheckCircle2 } from "lucide-react";
 import { fadeUp } from "./motion";
 
-const POINTS = [
-  "One product for events, flyers, directors, registrations, and attendance.",
-  "Less back-and-forth between chats, spreadsheets, and design tools.",
-  "A cleaner experience for both organizers and attendees.",
-  "Built around actual community workflows, not generic project management.",
-];
+// const POINTS = [
+//   "One product for events, flyers, directors, registrations, and attendance.",
+//   "Less back-and-forth between chats, spreadsheets, and design tools.",
+//   "A cleaner experience for both organizers and attendees.",
+//   "Built around actual community workflows, not generic project management.",
+// ];
 
 export default function WhyChooseUs() {
   return (
-    <section className="py-20 lg:py-24 bg-[#f8fafc] relative overflow-hidden">
+    <section id="features" className="py-20 lg:py-24 bg-[#f8fafc] relative overflow-hidden">
       <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-[#7877C6]/7 blur-[120px] -z-0" />
       <div className="absolute bottom-0 left-0 w-[380px] h-[380px] rounded-full bg-[#a5a4e0]/10 blur-[100px] -z-0" />
 
@@ -24,17 +24,17 @@ export default function WhyChooseUs() {
           className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-end"
         >
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-[#7877C6] mb-3">Why Rada</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#7877C6] mb-3">Why Wito</p>
             <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 tracking-tight leading-tight">
               Made for clubs that care about both execution and presentation
             </h2>
           </div>
           <p className="text-base text-gray-500 leading-relaxed lg:pl-8">
-            Rada is not trying to be a generic workspace. It is focused on the exact things community organizers repeat every month.
+            Wito is not trying to be a generic workspace. It is focused on the exact things community organizers repeat every month.
           </p>
         </motion.div>
 
-        <motion.div
+        {/* <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
@@ -59,7 +59,7 @@ export default function WhyChooseUs() {
               Instead of stitching five tools together, your club runs the full event cycle from one polished system.
             </p>
           </div>
-        </motion.div>
+        </motion.div> */}
       </div>
     </section>
   );

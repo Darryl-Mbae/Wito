@@ -27,8 +27,8 @@ export default function AppChrome({ activeNav = "Dashboard", children, className
     <div className={`relative flex rounded-2xl overflow-hidden border border-gray-200/80 bg-[#f8fafc] shadow-2xl shadow-[#7877C6]/10 ${className}`}>
       <aside className="hidden sm:flex w-44 shrink-0 flex-col border-r border-gray-100 bg-white px-3 py-4">
         <div className="flex items-center gap-2 px-2 mb-5">
-          <img src="/images/logo.png" alt="Rada" className="h-4 w-auto" />
-          <span className="text-sm font-bold text-gray-900">Rada</span>
+          <img src="/images/logo.png" alt="Wito" className="h-4 w-auto" />
+          <span className="text-sm font-bold text-gray-900">Wito</span>
         </div>
         <p className="px-3 text-[9px] uppercase tracking-widest text-gray-300 mb-2">Overview</p>
         <nav className="space-y-0.5">

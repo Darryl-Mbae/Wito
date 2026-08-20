@@ -3,7 +3,7 @@ import { fadeUp, stagger } from "./motion";
 
 const TESTIMONIALS = [
   {
-    quote: "We used to manage events in WhatsApp groups and Google Sheets. Rada cut our planning time in half.",
+    quote: "We used to manage events in WhatsApp groups and Google Sheets. Wito cut our planning time in half.",
     name: "Sarah Wanjiku",
     role: "President, Future Leaders Association",
     avatar: "S",

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { User, Shield, CreditCard, AlertTriangle } from "lucide-react";
 import { useOutletContext } from "react-router-dom";
 import type { DashboardContextType } from "../Dashboard";
-import { getAuth, sendPasswordResetEmail, deleteUser } from "firebase/auth";
-import { doc, getDoc, updateDoc, deleteDoc, getDocs, collection, query, where } from "firebase/firestore";
+import { getAuth, sendPasswordResetEmail,  } from "firebase/auth";
+import { doc, getDoc, updateDoc,  } from "firebase/firestore";
 import { db } from "../../config/firebase";
 
 const sections = [
@@ -27,8 +27,15 @@ const Settings: React.FC = () => {
   const [resetError, setResetError] = useState("");
 
   const [confirmText, setConfirmText] = useState("");
-  const [deleting, setDeleting] = useState(false);
+  // const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+
+  useEffect(() => {
+    console.log(confirmText)
+    console.log(deleteError)
+  },[confirmText,deleteError])
+
+  
 
   // const isOrgOwner = activeOrg && firebaseUser && activeOrg.createdBy === firebaseUser.uid;
 
@@ -37,91 +44,91 @@ const Settings: React.FC = () => {
     setDeleteError("");
   }, [activeSection]);
 
-  const handleDeleteOrganizationAndAccount = async () => {
-    if (!firebaseUser || !activeOrg) return;
-    setDeleting(true);
-    setDeleteError("");
-    try {
-      // 1. Fetch and delete tasks
-      const tasksQuery = query(collection(db, "tasks"), where("orgId", "==", activeOrg.id));
-      const tasksSnap = await getDocs(tasksQuery);
-      const taskDeletes = tasksSnap.docs.map((d) => deleteDoc(d.ref));
+  // const handleDeleteOrganizationAndAccount = async () => {
+  //   if (!firebaseUser || !activeOrg) return;
+  //   setDeleting(true);
+  //   setDeleteError("");
+  //   try {
+  //     // 1. Fetch and delete tasks
+  //     const tasksQuery = query(collection(db, "tasks"), where("orgId", "==", activeOrg.id));
+  //     const tasksSnap = await getDocs(tasksQuery);
+  //     const taskDeletes = tasksSnap.docs.map((d) => deleteDoc(d.ref));
 
-      // 2. Fetch and delete events
-      const eventsQuery = query(collection(db, "events"), where("orgId", "==", activeOrg.id));
-      const eventsSnap = await getDocs(eventsQuery);
-      const eventDeletes = eventsSnap.docs.map((d) => deleteDoc(d.ref));
+  //     // 2. Fetch and delete events
+  //     const eventsQuery = query(collection(db, "events"), where("orgId", "==", activeOrg.id));
+  //     const eventsSnap = await getDocs(eventsQuery);
+  //     const eventDeletes = eventsSnap.docs.map((d) => deleteDoc(d.ref));
 
-      // 3. Fetch and delete flyers
-      const flyersQuery = query(collection(db, "flyers"), where("orgId", "==", activeOrg.id));
-      const flyersSnap = await getDocs(flyersQuery);
-      const flyerDeletes = flyersSnap.docs.map((d) => deleteDoc(d.ref));
+  //     // 3. Fetch and delete flyers
+  //     const flyersQuery = query(collection(db, "flyers"), where("orgId", "==", activeOrg.id));
+  //     const flyersSnap = await getDocs(flyersQuery);
+  //     const flyerDeletes = flyersSnap.docs.map((d) => deleteDoc(d.ref));
 
-      await Promise.all([...taskDeletes, ...eventDeletes, ...flyerDeletes]);
+  //     await Promise.all([...taskDeletes, ...eventDeletes, ...flyerDeletes]);
 
-      // 4. Delete organization
-      await deleteDoc(doc(db, "organizations", activeOrg.id));
+  //     // 4. Delete organization
+  //     await deleteDoc(doc(db, "organizations", activeOrg.id));
 
-      // 5. Delete user document from Firestore
-      await deleteDoc(doc(db, "users", firebaseUser.uid));
+  //     // 5. Delete user document from Firestore
+  //     await deleteDoc(doc(db, "users", firebaseUser.uid));
 
-      // 6. Delete user from auth
-      await deleteUser(firebaseUser);
+  //     // 6. Delete user from auth
+  //     await deleteUser(firebaseUser);
 
-      window.location.href = "/";
-    } catch (err: any) {
-      console.error("Deletion error:", err);
-      if (err.code === "auth/requires-recent-login") {
-        setDeleteError("For security reasons, this sensitive operation requires a recent login. Please log out, log back in, and try again.");
-      } else {
-        setDeleteError(err.message || "Failed to complete deletion. Please try again.");
-      }
-    } finally {
-      setDeleting(false);
-    }
-  };
+  //     window.location.href = "/";
+  //   } catch (err: any) {
+  //     console.error("Deletion error:", err);
+  //     if (err.code === "auth/requires-recent-login") {
+  //       setDeleteError("For security reasons, this sensitive operation requires a recent login. Please log out, log back in, and try again.");
+  //     } else {
+  //       setDeleteError(err.message || "Failed to complete deletion. Please try again.");
+  //     }
+  //   } finally {
+  //     setDeleting(false);
+  //   }
+  // };
 
-  const handleDeleteOnlyAccount = async () => {
-    if (!firebaseUser) return;
-    setDeleting(true);
-    setDeleteError("");
-    try {
-      // Find all organizations where this user is invited or a director, and remove them
-      const userDocRef = doc(db, "users", firebaseUser.uid);
-      const userSnap = await getDoc(userDocRef);
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-        const userOrgs = userData.organization || [];
-        for (const orgRef of userOrgs) {
-          const orgDocRef = doc(db, "organizations", orgRef.id);
-          const orgSnap = await getDoc(orgDocRef);
-          if (orgSnap.exists()) {
-            const orgData = orgSnap.data();
-            const invited = orgData.invitedDirectors || [];
-            const updatedInvited = invited.filter((inv: any) => inv.email !== firebaseUser.email);
-            await updateDoc(orgDocRef, { invitedDirectors: updatedInvited });
-          }
-        }
-      }
+  // const handleDeleteOnlyAccount = async () => {
+  //   if (!firebaseUser) return;
+  //   setDeleting(true);
+  //   setDeleteError("");
+  //   try {
+  //     // Find all organizations where this user is invited or a director, and remove them
+  //     const userDocRef = doc(db, "users", firebaseUser.uid);
+  //     const userSnap = await getDoc(userDocRef);
+  //     if (userSnap.exists()) {
+  //       const userData = userSnap.data();
+  //       const userOrgs = userData.organization || [];
+  //       for (const orgRef of userOrgs) {
+  //         const orgDocRef = doc(db, "organizations", orgRef.id);
+  //         const orgSnap = await getDoc(orgDocRef);
+  //         if (orgSnap.exists()) {
+  //           const orgData = orgSnap.data();
+  //           const invited = orgData.invitedDirectors || [];
+  //           const updatedInvited = invited.filter((inv: any) => inv.email !== firebaseUser.email);
+  //           await updateDoc(orgDocRef, { invitedDirectors: updatedInvited });
+  //         }
+  //       }
+  //     }
 
-      // Delete user document from Firestore
-      await deleteDoc(userDocRef);
+  //     // Delete user document from Firestore
+  //     await deleteDoc(userDocRef);
 
-      // Delete user from auth
-      await deleteUser(firebaseUser);
+  //     // Delete user from auth
+  //     await deleteUser(firebaseUser);
 
-      window.location.href = "/";
-    } catch (err: any) {
-      console.error("Deletion error:", err);
-      if (err.code === "auth/requires-recent-login") {
-        setDeleteError("For security reasons, this sensitive operation requires a recent login. Please log out, log back in, and try again.");
-      } else {
-        setDeleteError(err.message || "Failed to complete deletion. Please try again.");
-      }
-    } finally {
-      setDeleting(false);
-    }
-  };
+  //     window.location.href = "/";
+  //   } catch (err: any) {
+  //     console.error("Deletion error:", err);
+  //     if (err.code === "auth/requires-recent-login") {
+  //       setDeleteError("For security reasons, this sensitive operation requires a recent login. Please log out, log back in, and try again.");
+  //     } else {
+  //       setDeleteError(err.message || "Failed to complete deletion. Please try again.");
+  //     }
+  //   } finally {
+  //     setDeleting(false);
+  //   }
+  // };
 
   useEffect(() => {
     if (!firebaseUser) return;

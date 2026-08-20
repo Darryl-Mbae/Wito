@@ -247,13 +247,13 @@ const TemplateMarketplace: React.FC = () => {
           await updateDoc(doc(db, "users", item.createdBy), { credits: increment(sellerCredit) });
 
           await addDoc(collection(db, "users", item.createdBy, "transactions"), {
-            type: "template",
+            type: "sale",
             templateId: item.id,
             templateName: item.name,
+            amount: sellerCredit,
             buyerUserId: currentUser.uid,
             buyerOrgId: orgId,
             salePrice: item.price,
-            sellerCredit,
             platformFee: item.price - sellerCredit,
             createdAt: serverTimestamp(),
           });

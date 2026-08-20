@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, Trash2, ArrowRight, CheckCircle2, Astroid } from "lucide-react";
+import { ArrowRight, Astroid } from "lucide-react";
 import { getAuth } from "firebase/auth";
 import { getFirestore, doc, setDoc, updateDoc, arrayUnion, collection } from "firebase/firestore";
 import app from "../config/firebase";
@@ -10,25 +10,25 @@ import { useMailtrap } from "../hooks/useMailtrap";
 
 export default function CreateClub() {
   const [clubName, setClubName] = useState("");
-  const [directorEmail, setDirectorEmail] = useState("");
-  const [directors, setDirectors] = useState<{ email: string; accepted: boolean }[]>([]);
+  // const [directorEmail, setDirectorEmail] = useState("");
+  // const [directors, setDirectors] = useState<{ email: string; accepted: boolean }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { onOrgCreated } = useOutletContext<{ onOrgCreated: () => void }>();
   const { sendEmail } = useMailtrap();
 
-  const handleAddDirector = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!directorEmail || !directorEmail.includes("@")) return;
-    if (!directors.find(d => d.email === directorEmail)) {
-      setDirectors([...directors, { email: directorEmail, accepted: false }]);
-    }
-    setDirectorEmail("");
-  };
+  // const handleAddDirector = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   if (!directorEmail || !directorEmail.includes("@")) return;
+  //   if (!directors.find(d => d.email === directorEmail)) {
+  //     setDirectors([...directors, { email: directorEmail, accepted: false }]);
+  //   }
+  //   setDirectorEmail("");
+  // };
 
-  const handleRemoveDirector = (emailToRemove: string) => {
-    setDirectors(directors.filter((d) => d.email !== emailToRemove));
-  };
+  // const handleRemoveDirector = (emailToRemove: string) => {
+  //   setDirectors(directors.filter((d) => d.email !== emailToRemove));
+  // };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,16 +48,16 @@ export default function CreateClub() {
       if (!user || !user.email) throw new Error("Not authenticated or missing email");
 
       // Each director gets their own unique token — no shared org-level token
-      const directorsWithTokens = directors.map((dir) => ({
-        ...dir,
-        token: crypto.randomUUID(),
-      }));
+      // const directorsWithTokens = directors.map((dir) => ({
+      //   ...dir,
+      //   token: crypto.randomUUID(),
+      // }));
 
       // 1. Create org — no invitationToken field on the org itself
       const newOrgRef = doc(collection(db, "organizations"));
       await setDoc(newOrgRef, {
         name: clubName,
-        invitedDirectors: directorsWithTokens,
+        // invitedDirectors: directorsWithTokens,
         createdBy: user.uid,
         createdAt: new Date(),
         plan: "free"
@@ -85,22 +85,22 @@ export default function CreateClub() {
       }
 
       // 3. Send each director their own unique link
-      if (directorsWithTokens.length > 0) {
-        const emailPromises = directorsWithTokens.map((dir) =>
-          sendEmail(
-            dir.email,
-            EMAIL_TEMPLATES.userInvitation.id,
-            {
-              company_name: clubName,
-              logo_url: import.meta.env.VITE_LOGO_URL ?? `${window.location.origin}/images/logo.png`,
-              email: dir.email,
-              base_url: window.location.origin,
-              token: dir.token,
-            }
-          )
-        );
-        await Promise.all(emailPromises);
-      }
+      // if (directorsWithTokens.length > 0) {
+      //   const emailPromises = directorsWithTokens.map((dir) =>
+      //     sendEmail(
+      //       dir.email,
+      //       EMAIL_TEMPLATES.userInvitation.id,
+      //       {
+      //         company_name: clubName,
+      //         logo_url: import.meta.env.VITE_LOGO_URL ?? `${window.location.origin}/images/logo.png`,
+      //         email: dir.email,
+      //         base_url: window.location.origin,
+      //         token: dir.token,
+      //       }
+      //     )
+      //   );
+      //   await Promise.all(emailPromises);
+      // }
 
       onOrgCreated();
 
@@ -154,7 +154,7 @@ export default function CreateClub() {
               </div>
             </div>
 
-            <div>
+            {/* <div>
               <label htmlFor="directorEmail" className="block text-sm font-medium text-gray-700">
                 Invite Directors (Optional)
               </label>
@@ -185,9 +185,9 @@ export default function CreateClub() {
                   <Plus className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 </button>
               </div>
-            </div>
+            </div> */}
 
-            {directors.length > 0 && (
+            {/* {directors.length > 0 && (
               <ul role="list" className="mt-4 divide-y divide-gray-100 border-t border-b border-gray-100">
                 {directors.map((dir) => (
                   <li key={dir.email} className="flex items-center justify-between py-3">
@@ -205,7 +205,7 @@ export default function CreateClub() {
                   </li>
                 ))}
               </ul>
-            )}
+            )} */}
 
             <div>
               <button

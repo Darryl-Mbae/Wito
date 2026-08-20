@@ -22,12 +22,12 @@ import {
     Users,
 } from "lucide-react";
 import AddToCalendar from "../components/AddToCalendar";
-import GoogleCalendarSyncToggle from "../components/GoogleCalendarSyncToggle";
+// import GoogleCalendarSyncToggle from "../components/GoogleCalendarSyncToggle";
 import { sendTemplatedEmail } from "../lib/emails/sendEmail";
 import { EMAIL_TEMPLATES } from "../lib/emails/templates";
 import { buildGoogleCalendarUrl } from "../utils/calendarLinks";
 import {
-    requestCalendarAccess,
+    // requestCalendarAccess,
     isTokenValid,
     type CalendarAuthResult,
 } from "../utils/GoogleCalendarAuth";
@@ -133,12 +133,19 @@ const EventPublic: React.FC = () => {
 
     // Google Calendar sync state
     const [calendarSync, setCalendarSync] = useState(false);
-    const [calendarConnecting, setCalendarConnecting] = useState(false);
+    // const [calendarConnecting, setCalendarConnecting] = useState(false);
     const [calendarAuth, setCalendarAuth] = useState<CalendarAuthResult | null>(null);
     const [calendarError, setCalendarError] = useState<string | null>(null);
     const [calendarSynced, setCalendarSynced] = useState(false);
 
-    const emailValid = validateEmail(form.email);
+    useEffect(() => {
+        if (calendarError) {
+            console.log(calendarError)
+        }
+    },[calendarError])
+    
+
+    // const emailValid = validateEmail(form.email);
 
     useEffect(() => {
         if (!id) return;
@@ -216,30 +223,30 @@ const EventPublic: React.FC = () => {
             }
         };
 
-    const handleToggleCalendarSync = async () => {
-        if (!emailValid) return;
+    // const handleToggleCalendarSync = async () => {
+    //     if (!emailValid) return;
 
-        if (calendarSync) {
-            setCalendarSync(false);
-            setCalendarAuth(null);
-            setCalendarError(null);
-            return;
-        }
+    //     if (calendarSync) {
+    //         setCalendarSync(false);
+    //         setCalendarAuth(null);
+    //         setCalendarError(null);
+    //         return;
+    //     }
 
-        setCalendarError(null);
-        setCalendarConnecting(true);
-        try {
-            const result = await requestCalendarAccess();
-            setCalendarAuth(result);
-            setCalendarSync(true);
-        } catch (err: any) {
-            console.error("Google Calendar auth failed:", err);
-            setCalendarError("Couldn't connect to Google Calendar. Please try again.");
-            setCalendarSync(false);
-        } finally {
-            setCalendarConnecting(false);
-        }
-    };
+    //     setCalendarError(null);
+    //     setCalendarConnecting(true);
+    //     try {
+    //         const result = await requestCalendarAccess();
+    //         setCalendarAuth(result);
+    //         setCalendarSync(true);
+    //     } catch (err: any) {
+    //         console.error("Google Calendar auth failed:", err);
+    //         setCalendarError("Couldn't connect to Google Calendar. Please try again.");
+    //         setCalendarSync(false);
+    //     } finally {
+    //         setCalendarConnecting(false);
+    //     }
+    // };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -339,7 +346,7 @@ const EventPublic: React.FC = () => {
     const hasFee = !!(event?.fee);
 
     const inputCls =
-        "mt-1 w-full rounded-[8px] border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-[#7877C6]/20 transition placeholder:text-gray-400 text-gray-900";
+        "mt-1 w-full rounded-[8px] border border-gray-200 bg-white px-4 py-2.5 text-[16px] sm:text-sm outline-none focus:ring-1 focus:ring-[#7877C6]/20 transition placeholder:text-gray-400 text-gray-900";
 
     const labelCls = "text-sm font-medium text-gray-700";
 
@@ -483,7 +490,7 @@ const EventPublic: React.FC = () => {
             <div className="max-w-4xl mx-auto">
                 {/* Cover image — full width on desktop */}
 
-                <div className="h-52 md:h-64 w-full overflow-hidden rounded-2xl mb-6">
+                <div className={`${event.imageUrl ? 'h-auto' : 'h-52' } md:h-64 w-full overflow-hidden rounded-2xl mb-6`}>
                     <img
                         src={event.imageUrl ? event.imageUrl : "/images/imageurl.jpg"}
                         alt={event.name}
@@ -591,7 +598,7 @@ const EventPublic: React.FC = () => {
                         </div>
 
                         {error && (
-                            <div className="p-3 text-xs font-medium text-red-600 bg-red-50 border border-red-100 rounded-[8px]">
+                            <div className="p-3 text-xs font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg">
                                 {error}
                             </div>
                         )}
@@ -711,7 +718,7 @@ const EventPublic: React.FC = () => {
                             <button
                                 type="submit"
                                 disabled={submitting || alreadyRegistered}
-                                className="w-full flex items-center justify-center gap-2 rounded-[8px] bg-[#7877C6] py-2.5 text-sm font-medium text-white hover:bg-[#7877C6]/90 transition disabled:opacity-60 cursor-pointer"
+                                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#7877C6] py-2.5 text-sm font-medium text-white hover:bg-[#7877C6]/90 transition disabled:opacity-60 cursor-pointer"
                             >
                                 {submitting && (
                                     <Loader2 size={15} className="animate-spin" />

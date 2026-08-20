@@ -37,12 +37,12 @@ function formatIcsDate(d: Date): string {
 
 export function buildIcsContent(event: CalendarEventInput): string {
   const { start, end } = parseDateTime(event.date, event.time);
-  const uid = event.id ? `rada-event-${event.id}@rada.app` : `rada-event-${Date.now()}@rada.app`;
+  const uid = event.id ? `wito-event-${event.id}@wito.app` : `wito-event-${Date.now()}@wito.app`;
   const desc = (event.description || "").replace(/\n/g, "\\n");
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Rada//Event//EN",
+    "PRODID:-//Wito//Event//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",

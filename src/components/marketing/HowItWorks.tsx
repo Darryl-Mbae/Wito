@@ -101,7 +101,7 @@ export default function HowItWorks() {
             From idea to full event flow
           </h2>
           <p className="mt-4 text-sm lg:text-base text-gray-500 leading-relaxed">
-            Scroll through the exact journey your club follows inside Rada.
+            Scroll through the exact journey your club follows inside Wito.
           </p>
         </motion.div>
 

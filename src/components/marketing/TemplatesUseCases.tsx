@@ -84,7 +84,7 @@ export default function TemplatesUseCases() {
               Built for real communities
             </h2>
             <p className="mt-4 text-gray-500 leading-relaxed">
-              From campus clubs to chama groups — Rada fits how East African communities actually organize.
+              From campus clubs to chama groups — Wito fits how East African communities actually organize.
             </p>
 
             <div className="mt-8 grid grid-cols-2 gap-3">

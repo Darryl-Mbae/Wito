@@ -8,7 +8,7 @@ const TOKEN = {
 const s = (color: string, text: string) =>
     `<span style="color:${color}">${text}</span>`;
 
-const { p, tg, at, av, tx, kw, fn, st, id, op, nb, pr, nm, pu } =
+const { p, tg, at, av, tx, kw, fn, st, id, op, nb, pr, pu } =
     Object.fromEntries(
         Object.entries(TOKEN).map(([k, v]) => [k, (t: string) => s(v, t)])
     ) as Record<keyof typeof TOKEN, (t: string) => string>;

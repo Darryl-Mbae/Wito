@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { X, Plus, Loader2, Check, Video, ImageIcon, Calendar } from "lucide-react";
+import { X, Plus, Loader2, Check, Video, ImageIcon} from "lucide-react";
 
 type EventForm = {
   name: string;
@@ -50,11 +50,7 @@ const CreateEventModal: React.FC<Props> = ({ onClose, onSubmit, saving, initialD
     description: false,
     imageURL: false,
   });
-  const [calendarOpts, setCalendarOpts] = useState({
-    google: true,
-    apple: false,
-    inviteDirectors: false,
-  });
+
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");

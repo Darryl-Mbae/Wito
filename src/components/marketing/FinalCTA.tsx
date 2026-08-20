@@ -32,7 +32,7 @@ export default function FinalCTA() {
               Ready to run your next event like a pro?
             </h2>
             <p className="mt-4 text-white/80 max-w-md mx-auto">
-              Join clubs and communities already using Rada to plan, promote, and deliver unforgettable events.
+              Join clubs and communities already using Wito to plan, promote, and deliver unforgettable events.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link

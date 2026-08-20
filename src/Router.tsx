@@ -25,6 +25,8 @@ import DesignsPage from "./pages/dashboard/DesignPage";
 import TasksPage from "./pages/dashboard/TasksPage";
 import MakeFlyerPage from "./pages/dashboard/MakeFlyerPage";
 import TemplateMarketplace from "./pages/dashboard/TemplateMarketplace";
+import SellerDashboard from "./pages/dashboard/SellerDashboard";
+import TransactionHistoryPage from "./pages/dashboard/TransactionHistory";
 
 export default function AppRouter() {
   return (
@@ -55,6 +57,8 @@ export default function AppRouter() {
         <Route path="design" element={<DesignsPage />} />
         <Route path="design/flyer" element={<MakeFlyerPage />} />
         <Route path="design/marketplace" element={<TemplateMarketplace />} />
+        <Route path="design/seller-dashboard" element={<SellerDashboard />} />
+        <Route path="transactions" element={<TransactionHistoryPage />} />
         <Route path='notifications' element={<NotificationsPage />} />
         <Route path="directors" element={<Directors />} />
         <Route path="tasks" element={<TasksPage />} />

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef} from "react";
 import { Link } from "react-router-dom";
 import {
   motion,
@@ -7,20 +7,20 @@ import {
 } from "framer-motion";
 import { ArrowRight, Play } from "lucide-react";
 import { fadeUp, stagger } from "./motion";
-import {
-  CalendarMockup,
-  EventsMockup,
-  DesignMockup,
-} from "./mockups/ProductMockups";
+// import {
+//   CalendarMockup,
+//   EventsMockup,
+//   DesignMockup,
+// } from "./mockups/ProductMockups";
 
-const TABS = [
-  { id: "calendar", label: "Calendar", component: CalendarMockup },
-  { id: "events", label: "Events", component: EventsMockup },
-  { id: "design", label: "Design", component: DesignMockup },
-] as const;
+// const TABS = [
+//   { id: "calendar", label: "Calendar", component: CalendarMockup },
+//   { id: "events", label: "Events", component: EventsMockup },
+//   { id: "design", label: "Design", component: DesignMockup },
+// ] as const;
 
 export default function MarketingHero() {
-  const [active] = useState<(typeof TABS)[number]["id"]>("calendar");
+  // const [active] = useState<(typeof TABS)[number]["id"]>("calendar");
 
   const heroRef = useRef<HTMLElement>(null);
 

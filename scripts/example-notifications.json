@@ -1,0 +1,32 @@
+{
+  "notifications": [
+    {
+      "orgId": "org-id-1",
+      "category": "announcement",
+      "from": "System",
+      "subject": "Scheduled Maintenance",
+      "preview": "The platform will be unavailable for approximately 30 minutes on Sunday at 02:00 UTC for scheduled maintenance."
+    },
+    {
+      "orgId": "org-id-2",
+      "category": "update",
+      "from": "What's new",
+      "subject": "Event Check-in is Here",
+      "preview": "Members can now check in to events using a QR code. Generate codes from your event detail page."
+    },
+    {
+      "orgId": "org-id-3",
+      "category": "sale",
+      "from": "Marketplace",
+      "subject": "Limited Time Sale on Templates",
+      "preview": "Get 50% off all premium templates this weekend. Upgrade your event flyers with professional designs."
+    },
+    {
+      "orgId": "org-id-4",
+      "category": "subscription",
+      "from": "Billing",
+      "subject": "Pro Plan Now Available",
+      "preview": "Unlock unlimited members, advanced analytics, and priority support. Upgrade your organization today."
+    }
+  ]
+}

@@ -336,8 +336,8 @@ type FontDropdownProps = {
 };
 
 const FontDropdown: React.FC<FontDropdownProps> = ({
-    selectedFontId, customFontUrl, customFontFamily,
-    onSelectPreset, onCustomUrlChange, onCustomFamilyChange,
+    selectedFontId, customFontFamily,
+    onSelectPreset
 }) => {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);

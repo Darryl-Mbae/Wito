@@ -223,7 +223,7 @@ const MakeFlyerPage: React.FC = () => {
           <div className="flex flex-col lg:flex-row lg:gap-4 items-baseline">
             <h1 className="text-base font-bold text-gray-900">Make flyer</h1>
             <p className="text-[12px] text-gray-400">
-              {template.name} · <br className="md:hidden"/>{canvasWidth} × {canvasHeight}px
+              {template.name} · <br className="md:hidden" />{canvasWidth} × {canvasHeight}px
             </p>
           </div>
         </div>
@@ -248,11 +248,10 @@ const MakeFlyerPage: React.FC = () => {
           <button
             key={tab.id}
             onClick={() => setMobileTab(tab.id)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-[12px] font-bold border-b-2 transition cursor-pointer mr-2 ${
-              mobileTab === tab.id
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-[12px] font-bold border-b-2 transition cursor-pointer mr-2 ${mobileTab === tab.id
                 ? "border-[#7877C6] text-[#7877C6]"
                 : "border-transparent text-gray-400"
-            }`}
+              }`}
           >
             {tab.icon} {tab.label}
           </button>
@@ -263,9 +262,8 @@ const MakeFlyerPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row flex-1 min-h-0 overflow-hidden">
         {/* Left — fields */}
         <div
-          className={`sm:flex sm:w-96 shrink-0 flex-col min-h-0 border-b sm:border-b-0 sm:border-r border-gray-100 bg-white overflow-hidden ${
-            mobileTab === "fields" ? "flex" : "hidden"
-          }`}
+          className={`sm:flex sm:w-96 shrink-0 flex-col min-h-0 border-b sm:border-b-0 sm:border-r border-gray-100 bg-white overflow-hidden ${mobileTab === "fields" ? "flex" : "hidden"
+            }`}
         >
           <FriendlyFields
             jsonData={jsonData}
@@ -284,9 +282,8 @@ const MakeFlyerPage: React.FC = () => {
 
         {/* Right — preview */}
         <div
-          className={`sm:flex flex-1 min-h-0 flex-col bg-[#f8fafc] ${
-            mobileTab === "preview" ? "flex" : "hidden"
-          }`}
+          className={`sm:flex flex-1 min-h-0 flex-col bg-[#f8fafc] ${mobileTab === "preview" ? "flex" : "hidden"
+            }`}
         >
           <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-white shrink-0">
             <span className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">
@@ -303,6 +300,7 @@ const MakeFlyerPage: React.FC = () => {
           <div className="flex-1 min-h-0 p-6 flex items-center justify-center">
             {previewSrc ? (
               <ScaledPreview
+                key={mobileTab}
                 ref={iframeRef}
                 src={previewSrc}
                 canvasWidth={canvasWidth}

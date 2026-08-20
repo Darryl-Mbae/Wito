@@ -11,8 +11,6 @@ import {
     doc,
     updateDoc,
     deleteDoc,
-    addDoc,
-    serverTimestamp,
 } from "firebase/firestore";
 import app from "../config/firebase";
 
@@ -62,34 +60,7 @@ function formatTime(raw: string): string {
     }
 }
 
-// ─── Seed helper (dev / first-run) ────────────────────────────────────────────
 
-const SEED: Omit<Notification, "id">[] = [
-    {
-        category: "subscription",
-        from: "Billing",
-        subject: "Pro plan is now available",
-        preview: "Unlock unlimited members, advanced analytics, and priority support for your organizations.",
-        time: new Date().toISOString(),
-        read: false,
-    },
-    {
-        category: "announcement",
-        from: "System",
-        subject: "Scheduled maintenance — June 12",
-        preview: "The platform will be unavailable for approximately 30 minutes starting at 02:00 UTC.",
-        time: new Date(Date.now() - 3_600_000).toISOString(),
-        read: false,
-    },
-    {
-        category: "update",
-        from: "What's new",
-        subject: "Event check-in is here",
-        preview: "Members can now check in to events using a QR code. Generate codes from your event detail page.",
-        time: new Date(Date.now() - 86_400_000 * 3).toISOString(),
-        read: true,
-    },
-];
 
 export function NotificationsPage() {
     const { activeOrg } = useOutletContext<DashboardContextType>();
@@ -97,7 +68,6 @@ export function NotificationsPage() {
 
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [selected, setSelected] = useState<string | null>(null);
-    const [seeded, setSeeded] = useState(false);
 
     // ── Real-time listener ──────────────────────────────────────────────────
     useEffect(() => {
@@ -107,18 +77,7 @@ export function NotificationsPage() {
             collection(db, "organizations", orgId, "notifications"),
             orderBy("createdAt", "desc")
         );
-        const unsub = onSnapshot(q, async (snap) => {
-            if (snap.empty && !seeded) {
-                // Seed starter notifications on first load
-                setSeeded(true);
-                for (const n of SEED) {
-                    await addDoc(collection(db, "organizations", orgId, "notifications"), {
-                        ...n,
-                        createdAt: serverTimestamp(),
-                    });
-                }
-                return;
-            }
+        const unsub = onSnapshot(q, (snap) => {
             setNotifications(
                 snap.docs.map((d) => {
                     const data = d.data();
@@ -135,7 +94,7 @@ export function NotificationsPage() {
             );
         });
         return () => unsub();
-    }, [orgId, seeded]);
+    }, [orgId]);
 
     const unread = notifications.filter((n) => !n.read).length;
 

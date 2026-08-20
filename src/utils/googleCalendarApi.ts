@@ -16,6 +16,14 @@ const toRFC3339 = (date: string, time: string) => {
 const addMinutes = (iso: string, minutes: number) =>
     new Date(new Date(iso).getTime() + minutes * 60000).toISOString();
 
+type GoogleApiErrorBody = {
+    error?: {
+        message?: string;
+        code?: number;
+        status?: string;
+    };
+};
+
 export const insertGoogleCalendarEvent = async (
     accessToken: string,
     event: CalendarEventInput
@@ -42,18 +50,9 @@ export const insertGoogleCalendarEvent = async (
             body: JSON.stringify(body),
         }
     );
-    type GoogleApiErrorBody = {
-        error?: {
-            message?: string;
-            code?: number;
-            status?: string;
-        };
-    };
 
     if (!res.ok) {
-        const errBody: GoogleApiErrorBody | null = await res
-            .json()
-            .catch(() => null);
+        const errBody = (await res.json().catch(() => null)) as GoogleApiErrorBody | null;
         throw new Error(
             errBody?.error?.message || `Calendar API error (${res.status})`
         );

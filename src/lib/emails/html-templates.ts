@@ -44,6 +44,7 @@ function card(inner: string): string {
 }
 
 function footer(companyName: string, baseUrl: string): string {
+  console.log(companyName)
   return `<tr>
     <td style="padding:22px 48px;background-color:#fafafa;border-top:1px solid #f0eff8;">
       <p style="margin:0 0 6px 0;font-size:12px;color:#b0b0c8;">© Wito · All rights reserved</p>

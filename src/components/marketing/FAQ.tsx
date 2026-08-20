@@ -5,8 +5,8 @@ import { fadeUp } from "./motion";
 
 const FAQS = [
   {
-    q: "What is Rada?",
-    a: "Rada is an all-in-one platform for clubs and communities to manage events, create flyers, assign tasks, invite directors, and track attendance.",
+    q: "What is Wito?",
+    a: "Wito is an all-in-one platform for clubs and communities to manage events, create flyers, assign tasks, invite directors, and track attendance.",
   },
   {
     q: "Do attendees need an account to register?",
@@ -37,7 +37,7 @@ const FAQS = [
     a: "No. The flyer builder uses a simple form with fields like event name, date, and location. Pick a template, fill in details, and preview live — developers can still use HTML/CSS templates for full control.",
   },
   {
-    q: "Is Rada free?",
+    q: "Is Wito free?",
     a: "Yes — the Free plan includes unlimited events, registration pages, tasks, directors, attendance tracking, and calendar sync. Premium features like the template store and Canva/Placid integrations require a Premium plan.",
   },
 ];

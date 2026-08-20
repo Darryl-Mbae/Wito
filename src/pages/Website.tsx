@@ -6,11 +6,14 @@ import Pricing from "../components/marketing/Pricing";
 import FAQ from "../components/marketing/FAQ";
 import FinalCTA from "../components/marketing/FinalCTA";
 import MarketingFooter from "../components/marketing/MarketingFooter";
+import UnderConstructionBanner from "../components/UnderConstructionBanner";
 
 const Website = () => {
   return (
     <div className="w-full min-h-screen bg-white text-gray-900 antialiased">
       <MarketingNav />
+      <UnderConstructionBanner />
+
       <main>
         <MarketingHero />
         <FeatureSections />

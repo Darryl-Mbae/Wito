@@ -121,22 +121,24 @@ const Events: React.FC = () => {
         createdAt: serverTimestamp(),
       });
 
-      const calendarEvent = {
-        id: ref.id,
-        name: form.name,
-        date: form.date,
-        time: form.time,
-        location: form.location,
-        description: form.description || null,
-      };
+      console.log(ref)
 
-      const { openGoogleCalendar, addToAppleCalendar } = await import("../../utils/calendarLinks");
-      if (form.addToGoogleCalendar) openGoogleCalendar(calendarEvent);
-      if (form.addToAppleCalendar) addToAppleCalendar(calendarEvent);
-      if (form.inviteDirectorsToCalendar) {
-        const { inviteDirectorsToEventCalendar } = await import("../../utils/directorCalendarInvite");
-        await inviteDirectorsToEventCalendar(activeOrg.id, calendarEvent);
-      }
+      // const calendarEvent = {
+      //   id: ref.id,
+      //   name: form.name,
+      //   date: form.date,
+      //   time: form.time,
+      //   location: form.location,
+      //   description: form.description || null,
+      // };
+
+      // const { openGoogleCalendar, addToAppleCalendar } = await import("../../utils/calendarLinks");
+      // if (form.addToGoogleCalendar) openGoogleCalendar(calendarEvent);
+      // if (form.addToAppleCalendar) addToAppleCalendar(calendarEvent);
+      // if (form.inviteDirectorsToCalendar) {
+      //   const { inviteDirectorsToEventCalendar } = await import("../../utils/directorCalendarInvite");
+      //   await inviteDirectorsToEventCalendar(activeOrg.id, calendarEvent);
+      // }
 
       setShowModal(false);
     } catch (err) {

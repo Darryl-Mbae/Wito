@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+secrets
 *.local
 
 # Editor directories and files
@@ -25,4 +26,4 @@ dist-ssr
 .env
 .env.*
 
-/utils/Auth-Secret.json
+utils/Auth-Secret.json

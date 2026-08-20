@@ -20,6 +20,7 @@ import {
 } from "firebase/auth";
 import { getFirestore, doc, getDoc, onSnapshot } from "firebase/firestore";
 import app from "../config/firebase";
+import { BuyCreditsModal } from "../pages/dashboard/BuyCredits";
 
 export interface Organization {
   id: string;
@@ -53,6 +54,7 @@ export function Header({
   const [query, setQuery] = useState("");
   const [userPopoverOpen, setUserPopoverOpen] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const userPopoverRef = useRef<HTMLDivElement>(null);
@@ -113,18 +115,32 @@ export function Header({
   }, []);
 
   // Real-time credits listener for the current user
+  // Real-time credits listener for the current user
   useEffect(() => {
     const auth = getAuth(app);
-    const currentUser = auth.currentUser;
-    if (!currentUser) { setCredits(null); return; }
-    
     const db = getFirestore(app);
-    const unsub = onSnapshot(doc(db, "users", currentUser.uid), (snap) => {
-      if (snap.exists()) {
-        setCredits(snap.data().credits ?? 0);
+    let unsubSnapshot: (() => void) | null = null;
+
+    const unsubAuth = onAuthStateChanged(auth, (currentUser) => {
+      if (unsubSnapshot) {
+        unsubSnapshot();
+        unsubSnapshot = null;
       }
+      if (!currentUser) {
+        setCredits(null);
+        return;
+      }
+      unsubSnapshot = onSnapshot(doc(db, "users", currentUser.uid), (snap) => {
+        if (snap.exists()) {
+          setCredits(snap.data().credits ?? 0);
+        }
+      });
     });
-    return () => unsub();
+
+    return () => {
+      unsubAuth();
+      if (unsubSnapshot) unsubSnapshot();
+    };
   }, []);
 
   useEffect(() => {
@@ -347,12 +363,12 @@ export function Header({
                 className="h-8 w-8 rounded-full object-cover"
               />
             ) : ( */}
-              <div className="flex items-center justify-center h-8 w-8 rounded-full bg-[#7877C6]">
-                <span className="text-white font-semibold text-sm">
-                  {initials}
-                </span>
-              </div>
-         
+            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-[#7877C6]">
+              <span className="text-white font-semibold text-sm">
+                {initials}
+              </span>
+            </div>
+
           </button>
 
           {/* User details popover */}
@@ -368,11 +384,11 @@ export function Header({
                       className="h-10 w-10 rounded-full object-cover flex-shrink-0"
                     />
                   ) : ( */}
-                    <div className="flex items-center justify-center h-10 w-10 rounded-full bg-[#7877C6] flex-shrink-0">
-                      <span className="text-white font-semibold text-sm">
-                        {initials}
-                      </span>
-                    </div>
+                  <div className="flex items-center justify-center h-10 w-10 rounded-full bg-[#7877C6] flex-shrink-0">
+                    <span className="text-white font-semibold text-sm">
+                      {initials}
+                    </span>
+                  </div>
                   {/* )} */}
                   <div className="min-w-0">
                     <p className="text-[13.5px] font-semibold text-gray-800 truncate">
@@ -408,13 +424,13 @@ export function Header({
                       </span>
                     </div>
                     <button
-                      // onClick={() => {
-                      //   setUserPopoverOpen(false);
-                      //   navigate("/dashboard/design/marketplace");
-                      // }}
+                      onClick={() => {
+                        setUserPopoverOpen(false);
+                        setShowBuyCredits(true);
+                      }}
                       className="text-[11px] font-medium text-[#7877C6] hover:underline cursor-pointer"
                     >
-                      Withdraw
+                      Buy
                     </button>
                   </div>
                 )}
@@ -422,6 +438,16 @@ export function Header({
 
               {/* Actions */}
               <div className="py-1.5">
+                <button
+                  onClick={() => {
+                    setUserPopoverOpen(false);
+                    navigate("/dashboard/transactions");
+                  }}
+                  className="flex w-full items-center gap-2.5 px-4 py-2 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  <Coins size={13} className="text-gray-400" />
+                  <span className="text-[13px] text-gray-600">Transaction history</span>
+                </button>
                 <button
                   onClick={() => {
                     setUserPopoverOpen(false);
@@ -459,6 +485,11 @@ export function Header({
           )}
         </div>
       </div>
+
+      {/* Buy Credits Modal */}
+      {showBuyCredits && (
+        <BuyCreditsModal onClose={() => setShowBuyCredits(false)} />
+      )}
     </header>
   );
 }
