@@ -41,7 +41,7 @@ const Auth = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, loading, redirectHandled } = useAuthContext();
-
+    const isMobile = window.innerWidth < 640;
     const inviteOrgName = location.state?.orgName as string | undefined;
 
     const {
@@ -135,7 +135,7 @@ const Auth = () => {
                         />
                     )}
 
-                    <div className="w-full mt-6">
+                    {!isMobile && <div className="w-full mt-6">
                         <div className="mb-6 flex items-center gap-4">
                             <div className="h-px flex-1 bg-gray-200"></div>
                             <span className="text-xs text-gray-400 font-medium">OR</span>
@@ -157,7 +157,7 @@ const Auth = () => {
                                 {isSignUp ? "Sign up with Google" : "Continue with Google"}
                             </button>
                         </div>
-                    </div>
+                    </div>}
 
                     <p className="mt-8 text-center text-xs text-gray-500">
                         {isSignUp ? "Already have an account? " : "Don't have an account? "}

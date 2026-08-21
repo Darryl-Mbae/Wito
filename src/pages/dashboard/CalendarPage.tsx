@@ -575,7 +575,7 @@ const CalendarPage: React.FC = () => {
                     <div className="flex flex-col gap-4">
 
                         {/* Assigned Tasks Widget */}
-                        <AssignedTasksWidget orgId={activeOrg?.id} />
+                        {/* <AssignedTasksWidget orgId={activeOrg?.id} /> */}
 
                         {/* Mini calendar */}
                         <MiniCalendar
