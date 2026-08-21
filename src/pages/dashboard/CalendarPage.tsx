@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { EmptyState } from "../../components/EmptyState";
+import AssignedTasksWidget from "../../components/AssignedTasksWidget";
 import {
     getFirestore,
     collection,
@@ -407,15 +408,18 @@ const CalendarPage: React.FC = () => {
 
         const db = getFirestore(app);
         const q = query(collection(db, "tasks"), where("orgId", "==", activeOrg.id));
-        const myName = currentUser.displayName || currentUser.email?.split("@")[0] || "Me";
 
         const unsub = onSnapshot(q, (snap) => {
             const fetchedTasks: CalEvent[] = [];
             snap.docs.forEach((d) => {
                 const data = d.data();
 
-                if (data.visibility === "private" && data.createdBy !== currentUser.uid && data.assignee !== myName && data.assignee !== currentUser.email) {
-                    return;
+                // Filter tasks based on visibility and permissions
+                if (data.visibility === "private") {
+                    // Private tasks are only visible to creator and assignee
+                    if (data.createdBy !== currentUser.uid && data.assigneeUid !== currentUser.uid) {
+                        return;
+                    }
                 }
 
                 let dateStr = "";
@@ -570,6 +574,9 @@ const CalendarPage: React.FC = () => {
                 {isMobile ? (
                     <div className="flex flex-col gap-4">
 
+                        {/* Assigned Tasks Widget */}
+                        <AssignedTasksWidget orgId={activeOrg?.id} />
+
                         {/* Mini calendar */}
                         <MiniCalendar
                             year={year}
@@ -719,6 +726,9 @@ const CalendarPage: React.FC = () => {
             {/* ── Right sidebar (desktop only) ── */}
             {sidebarOpen && !isMobile && (
                 <div className="hidden lg:flex flex-col gap-3 w-70 shrink-0">
+                    {/* Assigned Tasks Widget */}
+                    <AssignedTasksWidget orgId={activeOrg?.id} />
+
                     <MiniCalendar
                         year={year}
                         month={month}

@@ -12,6 +12,7 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  getDocs,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import app from "../../config/firebase";
@@ -26,8 +27,10 @@ interface Task {
   title: string;
   status: TaskStatus;
   assignee: string;
+  assigneeUid?: string;
   orgId: string;
   createdBy: string;
+  createdByName?: string;
   createdAt: any;
   visibility?: "public" | "private";
   dueDate?: string;
@@ -50,7 +53,7 @@ const TasksPage: React.FC = () => {
   const [directors, setDirectors] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!activeOrg) {
+    if (!activeOrg || !currentUser) {
       setTasks([]);
       setLoading(false);
       setDirectors([]);
@@ -61,14 +64,59 @@ const TasksPage: React.FC = () => {
     const q = query(collection(db, "tasks"), where("orgId", "==", activeOrg.id));
 
     setLoading(true);
-    const unsub = onSnapshot(q, (snap) => {
+    const unsub = onSnapshot(q, async (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Task));
-      data.sort((a, b) => {
+      
+      // Fetch creator names for all tasks
+      const creatorIds = new Set(data.map(t => t.createdBy));
+      const creatorNames: Record<string, string> = {};
+      
+      if (creatorIds.size > 0) {
+        const creatorArray = Array.from(creatorIds);
+        const chunkSize = 30;
+        for (let i = 0; i < creatorArray.length; i += chunkSize) {
+          const chunk = creatorArray.slice(i, i + chunkSize);
+          const usersRef = collection(db, "users");
+          const qCreators = query(usersRef, where("__name__", "in", chunk));
+          const creatorsSnap = await getDocs(qCreators);
+          creatorsSnap.forEach((creatorDoc) => {
+            const creatorData = creatorDoc.data();
+            creatorNames[creatorDoc.id] = creatorData.name || creatorData.displayName || creatorData.email?.split("@")[0] || "Unknown";
+          });
+        }
+      }
+      
+      // Add creator names to tasks
+      const dataWithCreatorNames = data.map(task => ({
+        ...task,
+        createdByName: creatorNames[task.createdBy] || "Unknown",
+      }));
+      
+      // Filter tasks based on visibility and permissions
+      const filteredData = dataWithCreatorNames.filter((task) => {
+        // Public tasks are visible to everyone
+        if (task.visibility === "public") {
+          return true;
+        }
+        
+        // Private tasks are only visible to:
+        // 1. The user who created it
+        // 2. The user assigned to it
+        if (task.visibility === "private") {
+          return task.createdBy === currentUser.uid || 
+                 task.assigneeUid === currentUser.uid;
+        }
+        
+        // Default to showing public tasks if visibility is not set
+        return true;
+      });
+      
+      filteredData.sort((a, b) => {
         const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : Date.now();
         const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : Date.now();
         return timeB - timeA;
       });
-      setTasks(data);
+      setTasks(filteredData);
       setLoading(false);
     });
 
@@ -80,17 +128,17 @@ const TasksPage: React.FC = () => {
 
       const ownerRef = doc(db, "users", data.createdBy);
       const ownerSnap = await getDoc(ownerRef);
-      let owner = { name: "Owner", email: "" };
+      let owner = { name: "Owner", email: "", uid: data.createdBy };
       if (ownerSnap.exists()) {
         const u = ownerSnap.data();
-        owner = { name: u.name || "Owner", email: u.email || "" };
+        owner = { name: u.name || "Owner", email: u.email || "", uid: data.createdBy };
       }
 
-      const formattedDirectors: any[] = [{ email: owner.email, name: owner.name }];
+      const formattedDirectors: any[] = [owner];
 
       if (data.invitedDirectors && Array.isArray(data.invitedDirectors)) {
         const invitedEmails = data.invitedDirectors.map((i: any) => i.email);
-        const emailToName: Record<string, string> = {};
+        const emailToInfo: Record<string, { name: string; uid: string }> = {};
 
         if (invitedEmails.length > 0) {
           const chunkSize = 30;
@@ -101,16 +149,25 @@ const TasksPage: React.FC = () => {
             const usersSnap = await getDocs(qUsers);
             usersSnap.forEach((uDoc) => {
               const u = uDoc.data();
-              if (u.email) emailToName[u.email] = u.name || u.displayName || u.email;
+              if (u.email) {
+                emailToInfo[u.email] = {
+                  name: u.name || u.displayName || u.email,
+                  uid: uDoc.id,
+                };
+              }
             });
           }
         }
 
         data.invitedDirectors.forEach((invite: any) => {
-          formattedDirectors.push({
-            email: invite.email,
-            name: emailToName[invite.email] || invite.email,
-          });
+          const info = emailToInfo[invite.email];
+          if (info) {
+            formattedDirectors.push({
+              email: invite.email,
+              name: info.name,
+              uid: info.uid,
+            });
+          }
         });
       }
 
@@ -130,13 +187,24 @@ const TasksPage: React.FC = () => {
     try {
       const db = getFirestore(app);
       let finalAssignee = newTaskAssignee.trim();
+      let assigneeUid = currentUser.uid; // Default to current user
+      
       if (!finalAssignee) {
         finalAssignee = currentUser.displayName || currentUser.email?.split("@")[0] || "Me";
+      } else {
+        // Find the UID of the assigned director
+        const assignedDirector = directors.find(
+          (d) => (d.name || d.email) === finalAssignee
+        );
+        if (assignedDirector && assignedDirector.uid) {
+          assigneeUid = assignedDirector.uid;
+        }
       }
 
       await addDoc(collection(db, "tasks"), {
         title: newTaskTitle.trim(),
         assignee: finalAssignee,
+        assigneeUid: assigneeUid,
         status: "todo",
         orgId: activeOrg.id,
         createdBy: currentUser.uid,
@@ -487,17 +555,17 @@ const TasksPage: React.FC = () => {
                       return (
                         <div className={`inline-flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 ${task.status === "done" ? "opacity-50" : ""
                           }`}>
-                          {/* <div className={`h-4 w-4 rounded-full flex items-center justify-center shrink-0 ${task.status === "done" ? "bg-gray-200" : colors.bg
-                            }`}>
-                            <span className={`text-[9px] font-bold ${task.status === "done" ? "text-gray-500" : colors.text
-                              }`}>
-                              {task.assignee.charAt(0).toUpperCase()}
-                            </span>
-                          </div> */}
                           <span className="text-xs font-medium text-gray-600">{task.assignee}</span>
                         </div>
                       );
                     })()}
+
+                    {task.createdByName && task.createdByName !== task.assignee && (
+                      <div className={`inline-flex items-center gap-1.5 bg-primary/8 px-2 py-1 rounded-lg ${task.status === "done" ? "opacity-50" : ""
+                        }`}>
+                        <span className="text-[10px] font-medium text-primary">by {task.createdByName}</span>
+                      </div>
+                    )}
 
                     {task.dueDate && (
                       <div className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 border ${task.status === "done"
