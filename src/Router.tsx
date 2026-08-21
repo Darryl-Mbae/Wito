@@ -27,6 +27,7 @@ import MakeFlyerPage from "./pages/dashboard/MakeFlyerPage";
 import TemplateMarketplace from "./pages/dashboard/TemplateMarketplace";
 import SellerDashboard from "./pages/dashboard/SellerDashboard";
 import TransactionHistoryPage from "./pages/dashboard/TransactionHistory";
+import AttendanceCheckIn from "./pages/AttendanceCheckIn";
 
 export default function AppRouter() {
   return (
@@ -40,6 +41,7 @@ export default function AppRouter() {
       <Route path="/terms-of-service" element={<TermsOfService />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/event/:id" element={<EventPublic />} />
+      <Route path="/event/:eventId/checkin" element={<AttendanceCheckIn />} />
       <Route path="/reset-password-confirm" element={<ResetPasswordPage />} />
 
       {/* Dashboard Layout */}

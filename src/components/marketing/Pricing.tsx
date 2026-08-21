@@ -33,12 +33,11 @@ const PLANS = [
     featured: true,
     features: [
       "Everything in Free",
-      // "1,000 emails / month",
-      "10 GB media storage",
-      "Custom fonts on templates",
+      "Analytics & Insights",
+      "Attendance Check-In Intergration",
       "Private tasks",
-      "CSV export",
-      "Send custom emails to event registered users",
+      "Custom fonts on templates",
+      "Registration CSV export",
       "Priority support",
     ],
   },
@@ -116,7 +115,8 @@ export default function Pricing() {
               </ul>
 
               <Link
-                to="/auth"
+                to={`${plan.cta  == "Join waitlist" ? "https://forms.gle/f2Tdo7Bh64i3Ar6LA" : "/auth"}`}
+                target="_blank"
                 className={`mt-8 block text-center rounded-xl py-3 text-sm font-semibold transition-colors ${
                   plan.featured
                     ? "bg-white text-[#7877C6] hover:bg-white/90"

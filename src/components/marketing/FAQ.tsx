@@ -40,6 +40,14 @@ const FAQS = [
     q: "Is Wito free?",
     a: "Yes — the Free plan includes unlimited events, registration pages, tasks, directors, attendance tracking, and calendar sync. Premium features like the template store and Canva/Placid integrations require a Premium plan.",
   },
+  {
+    q: "How do I check in attendees at an event?",
+    a: "From your event details page, click 'Generate Attendance QR Code' to create a unique QR code. Scan it with any phone to open the check-in interface, or share the link with door staff. Search for attendees by name or club, select them, and mark them as attended in one tap.",
+  },
+  {
+    q: "Can I check in attendees without a QR code?",
+    a: "Yes. In your event details page, click 'Generate Attendance QR Code' and then 'Open Check-in Page' to access the check-in interface directly without scanning. This is useful for offline check-in or if you're using a tablet at the door.",
+  },
 ];
 
 export default function FAQ() {

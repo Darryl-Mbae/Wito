@@ -7,6 +7,7 @@ import FAQ from "../components/marketing/FAQ";
 import FinalCTA from "../components/marketing/FinalCTA";
 import MarketingFooter from "../components/marketing/MarketingFooter";
 import UnderConstructionBanner from "../components/UnderConstructionBanner";
+import TemplateGallery from "../components/marketing/TemplateGallery";
 
 const Website = () => {
   return (
@@ -18,6 +19,7 @@ const Website = () => {
         <MarketingHero />
         <FeatureSections />
         <WhyChooseUs />
+        <TemplateGallery/>
         <Pricing />
         <FAQ />
         <FinalCTA />

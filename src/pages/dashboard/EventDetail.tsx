@@ -19,7 +19,9 @@ import {
     Search,
     Check,
     Gem,
-    // Download,
+    QrCode,
+    Loader2,
+    DownloadIcon,
 } from "lucide-react";
 import {
     formatDate,
@@ -29,6 +31,7 @@ import {
     type Event,
 } from "../../components/EventCard";
 import { PremiumFeature } from "../../components/PremiumFeature";
+import { useActiveOrg } from "../../contexts/ActiveOrgContext";
 
 type Registrant = {
     name: string;
@@ -44,23 +47,34 @@ type Registrant = {
 const EventDetail: React.FC = () => {
     const { eventId } = useParams<{ eventId: string }>();
     const navigate = useNavigate();
+    const { activeOrg } = useActiveOrg();
 
     const [event, setEvent] = useState<(Event & { registered?: Registrant[] }) | null>(null);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState<"all" | "attended" | "absent">("all");
+    const [showQRGenerator, setShowQRGenerator] = useState(false);
+    const [downloadingQR, setDownloadingQR] = useState(false);
 
     useEffect(() => {
         if (!eventId) return;
         const db = getFirestore(app);
         const unsub = onSnapshot(doc(db, "events", eventId), (snap) => {
             if (snap.exists()) {
-                setEvent({ id: snap.id, ...snap.data() } as Event & { registered?: Registrant[] });
+                const eventData = { id: snap.id, ...snap.data() } as Event & { registered?: Registrant[] };
+                
+                // Check if event belongs to the active organization
+                if (activeOrg && eventData.orgId !== activeOrg.id) {
+                    navigate("/dashboard/events", { replace: true });
+                    return;
+                }
+                
+                setEvent(eventData);
             }
             setLoading(false);
         });
         return () => unsub();
-    }, [eventId]);
+    }, [eventId, activeOrg, navigate]);
 
     const toggleAttended = async (email: string, current: boolean) => {
         if (!eventId || !event?.registered) return;
@@ -169,7 +183,88 @@ const EventDetail: React.FC = () => {
 
                     {/* Event info card */}
                     <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-                        <h1 className="text-sm font-semibold text-gray-900 leading-snug">{event.name}</h1>
+                        <div>
+                            <div className="flex flex-row items-center justify-between w-full">
+                                <h1 className="text-sm font-semibold text-gray-900 leading-snug">{event.name}</h1>
+                                <PremiumFeature
+                                    isPremium={true}
+                                    description="Generate scannable QR codes for your events to track check-ins and eliminate manual entry lines."
+                                    tooltipPosition="bottom"
+                                >
+                                    {/* Generate QR Code Button */}
+                                    <button
+                                        onClick={() => setShowQRGenerator(!showQRGenerator)}
+                                        className="w-10 flex items-center justify-center gap-2 px-2 py-2 rounded-lg border border-[#7877C6]/30 bg-[#7877C6]/5 text-[#7877C6] text-xs font-medium hover:bg-[#7877C6]/10 transition cursor-pointer"
+                                    >
+                                        <QrCode size={14} />
+                                    </button>
+                                </PremiumFeature>
+
+
+                            </div>
+                            {event.description && (
+                                <p className="text-xs text-gray-500 mt-2 leading-relaxed">{event.description}</p>
+                            )}
+                        </div>
+
+
+
+                        {/* QR Code Display */}
+                        {showQRGenerator && eventId && (
+                            <div className="pt-3 border-t border-gray-100 space-y-3">
+                                <p className="text-[11px] text-gray-500 font-medium">Scan this code at check-in:</p>
+                                <div className="bg-gray-50 p-3 rounded-lg flex items-center justify-center">
+                                    <img
+                                        id="qr-code-img"
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${window.location.origin}/event/${eventId}/checkin`}
+                                        alt="Attendance QR Code"
+                                        className="w-32 h-32"
+                                    />
+                                </div>
+                                <div className="flex gap-2">
+
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                setDownloadingQR(true);
+                                                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${window.location.origin}/event/${eventId}/checkin`;
+                                                const response = await fetch(qrUrl);
+                                                const blob = await response.blob();
+                                                const url = URL.createObjectURL(blob);
+                                                const link = document.createElement('a');
+                                                link.href = url;
+                                                link.download = `${event.name}-qr-code.png`;
+                                                document.body.appendChild(link);
+                                                link.click();
+                                                document.body.removeChild(link);
+                                                URL.revokeObjectURL(url);
+                                            } catch (err) {
+                                                console.error('Failed to download QR code:', err);
+                                            } finally {
+                                                setDownloadingQR(false);
+                                            }
+                                        }}
+                                        disabled={downloadingQR}
+                                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition disabled:opacity-60 cursor-pointer"
+                                    >
+                                        {downloadingQR ? <Loader2 size={12} className="animate-spin" /> : <DownloadIcon size={12} />}
+                                        {downloadingQR ? "Downloading..." : "Download QR"}
+                                    </button>
+                                    {/* <button
+                                        onClick={() => {
+                                            setDownloadingQR(true);
+                                            setTimeout(() => window.open(`/event/${eventId}/checkin`, '_blank'), 500);
+                                            setTimeout(() => setDownloadingQR(false), 1000);
+                                        }}
+                                        disabled={downloadingQR}
+                                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-600 text-xs font-medium hover:bg-blue-100 transition disabled:opacity-60 cursor-pointer"
+                                    >
+                                        {downloadingQR && <Loader2 size={12} className="animate-spin" />}
+                                        {downloadingQR ? "Opening..." : "Open Check-in"}
+                                    </button> */}
+                                </div>
+                            </div>
+                        )}
 
                         <div className="space-y-2">
                             <div className="flex items-center gap-2 text-xs text-gray-500">

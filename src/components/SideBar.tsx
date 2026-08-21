@@ -18,6 +18,7 @@ import { useLogout } from "../hooks/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
 import type { Organization } from "./Header";
 import { PremiumFeature } from "./PremiumFeature";
+import { UpgradeModal } from "./UpgradeModal";
 import { getFirestore, collection, query, where, onSnapshot } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import app from "../config/firebase";
@@ -58,6 +59,7 @@ const SideBar: React.FC<SidebarProps> = ({
   const currentUser = auth.currentUser;
 
   const [taskCount, setTaskCount] = useState(0);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     if (!activeOrg || !currentUser) {
@@ -264,7 +266,10 @@ const SideBar: React.FC<SidebarProps> = ({
                 <p className="text-xs text-white/70 leading-relaxed">
                   Upgrade your account and unlock all premium platform utilities.
                 </p>
-                <button className="mt-2 w-full rounded-xl bg-white py-2 text-center text-xs font-semibold text-[#7877C6] hover:bg-white/90 cursor-pointer">
+                <button 
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="mt-2 w-full rounded-xl bg-white py-2 text-center text-xs font-semibold text-[#7877C6] hover:bg-white/90 cursor-pointer"
+                >
                   Upgrade premium
                 </button>
               </div>
@@ -283,6 +288,11 @@ const SideBar: React.FC<SidebarProps> = ({
           padding: "6px 12px",
           borderRadius: "6px",
         }}
+      />
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)}
+        waitlistUrl="https://forms.gle/f2Tdo7Bh64i3Ar6LA"
       />
     </>
   );

@@ -27,12 +27,14 @@ export const PremiumModal: React.FC<{ description: string; onClose: () => void }
             {description}
           </p>
           
-          <button 
-            onClick={onClose}
-            className="w-full bg-[#7877C6] text-white font-medium py-3 rounded-xl hover:bg-[#6b6ab3] transition cursor-pointer shadow-md shadow-[#7877C6]/20"
+          <a
+            href="https://forms.gle/f2Tdo7Bh64i3Ar6LA"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full bg-[#7877C6] text-white font-medium py-3 rounded-xl hover:bg-[#6b6ab3] transition cursor-pointer shadow-md shadow-[#7877C6]/20 block text-center"
           >
-            Upgrade to Premium
-          </button>
+            Join Waitlist
+          </a>
         </div>
       </div>
     </div>,

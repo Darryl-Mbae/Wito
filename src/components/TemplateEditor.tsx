@@ -351,7 +351,7 @@ const FontDropdown: React.FC<FontDropdownProps> = ({
     }, []);
 
     return (
-        <div ref={ref} className="relative ">
+        <div ref={ref} className="relative lg:px-2">
             <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-left hover:border-gray-300 transition cursor-pointer">
                 <span className="text-[11px] font-medium text-gray-700 truncate">
                     {isCustom ? (customFontFamily || "Custom font…") : current.label}
@@ -361,7 +361,7 @@ const FontDropdown: React.FC<FontDropdownProps> = ({
 
 
             {open && (
-                <div className="lg:min-w-60 absolute top-full right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
+                <div className="lg:min-w-60 absolute top-full right-0 lg:right-2 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
                     {FONT_PRESETS.map((f) =>
                         f.id === "custom" ? (
                             <PremiumFeature

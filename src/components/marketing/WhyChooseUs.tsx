@@ -1,13 +1,6 @@
 import { motion } from "framer-motion";
-// import { CheckCircle2 } from "lucide-react";
+import { Sparkles, Store, Wand2 } from "lucide-react";
 import { fadeUp } from "./motion";
-
-// const POINTS = [
-//   "One product for events, flyers, directors, registrations, and attendance.",
-//   "Less back-and-forth between chats, spreadsheets, and design tools.",
-//   "A cleaner experience for both organizers and attendees.",
-//   "Built around actual community workflows, not generic project management.",
-// ];
 
 export default function WhyChooseUs() {
   return (
@@ -24,43 +17,81 @@ export default function WhyChooseUs() {
           className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-end"
         >
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-[#7877C6] mb-3">Why Wito</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#7877C6] mb-3">
+              The template library
+            </p>
             <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 tracking-tight leading-tight">
-              Made for clubs that care about both execution and presentation
+              Every flyer starts from something already great
             </h2>
           </div>
           <p className="text-base text-gray-500 leading-relaxed lg:pl-8">
-            Wito is not trying to be a generic workspace. It is focused on the exact things community organizers repeat every month.
+            Skip the blank canvas. Pick a template, swap in your event details, and you're done —
+            or open the store and buy a design made by another creator.
           </p>
         </motion.div>
 
-        {/* <motion.div
+        <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
           variants={fadeUp}
-          className="mt-10 lg:mt-12 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"
+          className="mt-10 lg:mt-12 grid gap-4 md:grid-cols-3"
         >
-          <div className="rounded-[2rem] border border-gray-100 bg-white p-6 lg:p-8 shadow-xl shadow-[#7877C6]/5">
-            <div className="grid gap-4 md:grid-cols-2">
-              {POINTS.map((point) => (
-                <div key={point} className="flex items-start gap-3 rounded-2xl bg-[#f8fafc] p-4">
-                  <CheckCircle2 size={18} className="text-[#7877C6] shrink-0 mt-0.5" />
-                  <p className="text-sm text-gray-600 leading-relaxed">{point}</p>
-                </div>
-              ))}
+          <div className="rounded-[1.75rem] border border-gray-100 bg-white p-6">
+            <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#7877C6]/10">
+              <Wand2 size={16} className="text-[#7877C6]" />
             </div>
-          </div>
-
-          <div className="rounded-[2rem] bg-linear-to-br from-[#7877C6] to-[#5b5aa0] p-6 lg:p-8 text-white shadow-2xl shadow-[#7877C6]/20">
-            <p className="text-[11px] uppercase tracking-[0.25em] text-white/65">The difference</p>
-            <h3 className="mt-4 text-2xl font-bold tracking-tight">Organize faster. Look sharper.</h3>
-            <p className="mt-3 text-sm leading-relaxed text-white/78">
-              Instead of stitching five tools together, your club runs the full event cycle from one polished system.
+            <h3 className="mt-4 text-base font-semibold text-gray-900">No design skill needed</h3>
+            <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+              Choose a template, change the name and date, and your flyer is ready to share.
             </p>
           </div>
-        </motion.div> */}
+
+          <div className="rounded-[1.75rem] border border-gray-100 bg-white p-6">
+            <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#7877C6]/10">
+              <Store size={16} className="text-[#7877C6]" />
+            </div>
+            <h3 className="mt-4 text-base font-semibold text-gray-900">A store, not just a folder</h3>
+            <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+              Browse designs built by other clubs and creators, and buy the ones that fit your event.
+            </p>
+          </div>
+
+          <div className="rounded-[1.75rem] bg-linear-to-br from-[#7877C6] to-[#5b5aa0] p-6 text-white">
+            <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/15">
+              <Sparkles size={16} className="text-white" />
+            </div>
+            <h3 className="mt-4 text-base font-semibold">Designers get paid</h3>
+            <p className="mt-2 text-sm text-white/78 leading-relaxed">
+              Build a template once, list it in the store, and earn every time another organizer buys it.
+            </p>
+          </div>
+        </motion.div>
       </div>
+
+      {/* <motion.div
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-80px" }}
+        variants={fadeUp}
+        className="mt-14 lg:mt-16 relative"
+      >
+        <div className="grid grid-cols-2 md:grid-cols-4 grid-rows-2 gap-0 h-[420px] md:h-[520px]">
+          {GRID_IMAGES.map((img) => (
+            <div key={img.id} className={`relative overflow-hidden group ${img.className}`}>
+              <img
+                src={img.src}
+                alt={img.label}
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-linear-to-t from-black/50 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <span className="absolute bottom-3 left-3 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                {img.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </motion.div> */}
     </section>
   );
 }

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Building2, CalendarCheck, Palette, Link2, BarChart3 } from "lucide-react";
+import { Building2, CalendarCheck, Palette, Link2, BarChart3, LayoutTemplate } from "lucide-react";
 import { fadeUp } from "./motion";
 
 
@@ -10,11 +10,10 @@ const FEATURES = [
     icon: Building2,
     tag: "Step 01",
     image: "/images/create.png",
-    title: "Create your org",
     imageStyle: "w-full h-full object-cover lg:mb-7",
+    title: "Create your org",
     desc: "Set up your organization first so everything lives in one branded workspace.",
   },
-
   {
     id: "event",
     icon: CalendarCheck,
@@ -25,18 +24,28 @@ const FEATURES = [
     desc: "Add the date, venue, fee, meeting link, dress code, and all the key event details in one flow.",
   },
   {
+    id: "templates",
+    icon: LayoutTemplate,
+    tag: "Step 03",
+    image: "/images/templates.png",
+    imageStyle: "h-full w-auto object-cover",
+    title: "Pick a template",
+    desc: "Choose from a library of ready-to-go flyer templates, so you're never starting from a blank canvas.",
+  },
+  {
     id: "flyer",
     icon: Palette,
-    tag: "Step 03",
-    image: "/images/mac-flyer.png",
+    tag: "Step 04",
+    image: "#",
+    imageStyle: "w-full h-full object-cover",
     title: "Generate flyer",
-    desc: "Turn event details into polished visuals quickly using your templates and flyer builder.",
+    desc: "No design time needed — just swap in your event name and details, and your flyer is ready.",
   },
   {
     id: "share",
     icon: Link2,
-    tag: "Step 04",
-    image: "/images/register.png",
+    tag: "Step 05",
+    image: "#",
     imageStyle: "h-full w-auto object-cover",
     title: "Share registration links",
     desc: "Send your public event page so members and guests can register without creating an account.",
@@ -44,7 +53,7 @@ const FEATURES = [
   {
     id: "attendance",
     icon: BarChart3,
-    tag: "Step 05",
+    tag: "Step 06",
     image: "/images/attendance.png",
     imageStyle: "h-full w-auto object-cover",
     title: "Track attendance",
