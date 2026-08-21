@@ -13,7 +13,7 @@ const Website = () => {
   return (
     <div className="w-full min-h-screen bg-white text-gray-900 antialiased">
       <MarketingNav />
-      <UnderConstructionBanner />
+      {/* <UnderConstructionBanner /> */}
 
       <main>
         <MarketingHero />
