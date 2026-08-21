@@ -13,3 +13,4 @@ bucket_name = "flyer-previews"
 
 [vars]
 R2_PUBLIC_URL = "https://pub-bd28b0a830c84724879e9e010ef77c62.r2.dev"
+SENDER_NAME = "Wito"

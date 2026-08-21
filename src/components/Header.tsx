@@ -458,16 +458,7 @@ export function Header({
                   <Settings size={13} className="text-gray-400" />
                   <span className="text-[13px] text-gray-600">Account settings</span>
                 </button>
-                <button
-                  onClick={() => {
-                    setUserPopoverOpen(false);
-                    navigate("/dashboard/design/marketplace");
-                  }}
-                  className="flex w-full items-center gap-2.5 px-4 py-2 hover:bg-gray-50 transition cursor-pointer"
-                >
-                  <Store size={13} className="text-gray-400" />
-                  <span className="text-[13px] text-gray-600">Template store</span>
-                </button>
+               
                 <button
                   onClick={() => {
                     setUserPopoverOpen(false);

@@ -95,7 +95,7 @@ async function handleEmail(request: Request, env: Env): Promise<Response> {
             "Accept": "application/json",
         },
         body: JSON.stringify({
-            from: { email: env.SENDER_EMAIL, name: env.SENDER_NAME },
+            from: { email: env.SENDER_EMAIL, name: env.SENDER_NAME || "Wito" },
             to: [{ email: recipientEmail }],
             template_uuid: templateUuid,
             template_variables: variables,
