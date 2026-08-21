@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { EmptyState } from "../../components/EmptyState";
-import AssignedTasksWidget from "../../components/AssignedTasksWidget";
+// import AssignedTasksWidget from "../../components/AssignedTasksWidget";
 import {
     getFirestore,
     collection,
@@ -727,7 +727,7 @@ const CalendarPage: React.FC = () => {
             {sidebarOpen && !isMobile && (
                 <div className="hidden lg:flex flex-col gap-3 w-70 shrink-0">
                     {/* Assigned Tasks Widget */}
-                    <AssignedTasksWidget orgId={activeOrg?.id} />
+                    {/* <AssignedTasksWidget orgId={activeOrg?.id} /> */}
 
                     <MiniCalendar
                         year={year}
