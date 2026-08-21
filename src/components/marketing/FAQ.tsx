@@ -30,7 +30,7 @@ const FAQS = [
   },
   {
     q: "How does the template store work?",
-    a: "Browse templates by post, story, or flyer format and search by tags. Free templates are available to everyone. Premium templates require a Premium plan to purchase and add to your library.",
+    a: "Browse templates by post, story, or flyer format and search by tags. Free templates are available to everyone. Premium templates requires one to purchase and add to your library.",
   },
   {
     q: "Do I need to code to make flyers?",

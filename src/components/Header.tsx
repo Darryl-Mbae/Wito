@@ -11,7 +11,7 @@ import {
   LogOut,
   Settings,
   Coins,
-  Store,
+
 } from "lucide-react";
 import {
   getAuth,
