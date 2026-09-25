@@ -1,46 +1,73 @@
-# 📅 Wito — Event & Task Management Platform
+<div align="center">
 
-[![Firebase Hosting](https://img.shields.io/badge/Hosted%20With-Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://rada-b60ad.web.app/)
-[![Build & Deploy](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](#)
-[![Status](https://img.shields.io/badge/Status-Active%20Development-brightgreen?style=for-the-badge)](#)
+  <!-- Main Hero Image Showcase -->
+  <img src="YOUR_IMAGE_PATH_HERE.jpg" alt="Wito Preview" width="100%" style="border-radius: 12px; margin-bottom: 24px;" />
 
-> **Wito** is an interactive web platform designed for seamless event management, task scheduling, member registration, and attendance tracking. Built to streamline club and organizational operations from planning to execution.
+  # ⚡ Wito
+  **Plan events. Promote beautifully. Stay organized. All in Wito.**
 
-🌐 **Live Demo:** [https://rada-b60ad.web.app/](https://rada-b60ad.web.app/)
+  *Events, flyers, registrations, and calendar sync in one clean workspace.*
+
+  <br />
+
+  [![Live App](https://img.shields.io/badge/Live_Demo-https%3A%2F%2Frada--b60ad.web.app-6366f1?style=for-the-badge&logo=firebase&logoColor=white)](https://rada-b60ad.web.app/)
+  [![Framework](https://img.shields.io/badge/Built_With-React_%2F_Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white)](#)
+  [![Deployment](https://img.shields.io/badge/Hosted-Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](#)
+
+</div>
+
+<br />
 
 ---
 
-## ✨ Features
+## 🚀 Key Features
 
-- **🗓️ Event Creation & Registration:** Simple workflows for organizing upcoming events, managing guest lists, and tracking registrations.
-- **📍 Attendance Check-In:** Dedicated attendance system to check in attendees and maintain verified logs.
-- **📆 Calendar & Task Assignment:** Assign tasks directly on the calendar interface to keep coordinators synchronized.
-- **🎨 Template Editor & Layout Presets:** Dynamic dashboard customization with customizable layout templates.
-- **🔄 CI/CD Automated Deployment:** Built-in GitHub Workflows for automated testing and continuous deployment.
+<table>
+  <tr>
+    <td width="33%" align="center">
+      <h3>📅 Dynamic Calendar</h3>
+      <p>Assign tasks, track deadlines, and keep team leads in sync across active events.</p>
+    </td>
+    <td width="33%" align="center">
+      <h3>🎨 Modern Flyers & Presets</h3>
+      <p>Customize dynamic layouts, dynamic registration landing pages, and event flyers.</p>
+    </td>
+    <td width="33%" align="center">
+      <h3>🎟️ Unified Check-in</h3>
+      <p>Manage member registrations, view attendee analytics, and log check-ins live.</p>
+    </td>
+  </tr>
+</table>
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Frontend:** React / Web Standards
-- **Backend / Services:** Firebase (Authentication, Firestore, Hosting)
-- **CI/CD:** GitHub Actions
-- **Configuration & Tooling:** Oxlint / ESLint
+<div align="center">
+
+| Area | Technology |
+| :--- | :--- |
+| **Frontend** | React / TypeScript / Next.js |
+| **Backend & Auth** | Firebase Authentication & Firestore |
+| **Hosting** | Firebase Hosting |
+| **CI/CD** | GitHub Actions |
+| **Code Quality** | Oxlint / ESLint |
+
+</div>
 
 ---
 
-## 🚀 Getting Started
+## ⚡ Quick Start
 
-### Prerequisites
+```bash
+# Clone repository
+git clone [https://github.com/Darryl-Mbae/Wito.git](https://github.com/Darryl-Mbae/Wito.git)
 
-Ensure you have the following installed on your local machine:
-- **Node.js** (v18.x or later recommended)
-- **npm** or **yarn**
-- **Firebase CLI** (`npm install -g firebase-tools`)
+# Move into project directory
+cd Wito
 
-### Installation
+# Install dependencies
+npm install
 
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/Darryl-Mbae/Wito.git](https://github.com/Darryl-Mbae/Wito.git)
-   cd Wito
+# Launch development environment
+npm run dev
