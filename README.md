@@ -58,17 +58,3 @@
 
 ---
 
-## ⚡ Quick Start
-
-```bash
-# Clone repository
-git clone [https://github.com/Darryl-Mbae/Wito.git](https://github.com/Darryl-Mbae/Wito.git)
-
-# Move into project directory
-cd Wito
-
-# Install dependencies
-npm install
-
-# Launch development environment
-npm run dev
