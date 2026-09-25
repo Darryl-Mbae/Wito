@@ -1,7 +1,8 @@
 <div align="center">
 
   <!-- Main Hero Image Showcase -->
-  <img src="YOUR_IMAGE_PATH_HERE.jpg" alt="Wito Preview" width="100%" style="border-radius: 12px; margin-bottom: 24px;" />
+
+  <img src="https://github.com/user-attachments/assets/b4726427-c6fe-4b8a-89ce-e4d5832e499d" alt="Wito Preview" width="100%" style="border-radius: 12px; margin-bottom: 24px;" />
 
   # ⚡ Wito
   **Plan events. Promote beautifully. Stay organized. All in Wito.**
